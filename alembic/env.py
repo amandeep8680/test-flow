@@ -11,6 +11,9 @@ from app.core.database import Base
 # Import models so Alembic can detect their tables.
 # More models will be added here as we create them.
 from app.models.organization import Organization  # noqa: F401
+from app.models.user import User  # noqa: F401
+from app.models.role import Role  # noqa: F401
+from app.models.user_role import UserRole  # noqa: F401
 
 
 config = context.config

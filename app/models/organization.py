@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column , relationship
 
 from app.core.database import Base
 
@@ -62,4 +62,8 @@ class Organization(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+    users: Mapped[list["User"]] = relationship(
+        "User",
+        back_populates="organization",
     )
