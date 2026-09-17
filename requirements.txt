@@ -1,13 +1,15 @@
 fastapi
 uvicorn[standard]
+argon2-cffi
+PyJWT
+python-multipart
+sqlalchemy[asyncio]
+# postgresql , sqlalchemy
+
 sqlalchemy
 psycopg[binary]
 alembic
 pydantic-settings
-argon2-cffi
-PyJWT
-python-multipart
-
 
 # for testing
 
