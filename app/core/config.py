@@ -2,6 +2,7 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+default_temp_password: str
 
 class Settings(BaseSettings):
     app_name: str = "Test Flow API"
@@ -15,6 +16,8 @@ class Settings(BaseSettings):
 
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
+
+    default_temp_password: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
