@@ -1,31 +1,24 @@
 fastapi
 uvicorn[standard]
+
 argon2-cffi
 PyJWT
 python-multipart
-sqlalchemy[asyncio]
-# postgresql , sqlalchemy
 
-sqlalchemy
+sqlalchemy[asyncio]
 psycopg[binary]
 alembic
+
 pydantic-settings
-
-# for testing
-
-pytest
-pytest-asyncio 
-httpx
-
 pydantic[email]
-
-psycopg2-binary
-
-alembic
-
 
 python-dotenv
 
 python-jose[cryptography]
 passlib[bcrypt]
 bcrypt
+
+# Testing
+pytest
+pytest-asyncio
+httpx
