@@ -1,4 +1,4 @@
-
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -10,7 +10,6 @@ class OrganizationSignupRequest(BaseModel):
     together with its initial ADMIN user.
     """
 
-    # Organization details
     organization_name: str = Field(
         min_length=1,
         max_length=150,
@@ -21,7 +20,6 @@ class OrganizationSignupRequest(BaseModel):
         max_length=150,
     )
 
-    # Initial ADMIN user details
     admin_email: EmailStr
 
     admin_username: str = Field(
@@ -50,11 +48,8 @@ class LoginRequest(BaseModel):
     Request body used when a user logs into the system.
     """
 
-    # User can authenticate using their email.
     email: EmailStr
 
-    # Plain-text password is received over HTTPS.
-    # It is never stored directly in the database.
     password: str = Field(
         min_length=1,
         max_length=128,
@@ -86,14 +81,35 @@ class TokenResponse(BaseModel):
     Authentication response containing access and refresh tokens.
     """
 
-   
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
-    # User information returned after successful login.
+
     user: UserResponse
     roles: list[str]
 
+
 class ChangePasswordRequest(BaseModel):
-    current_password: str = Field(min_length=1, max_length=128)
-    new_password: str = Field(min_length=8, max_length=128)
+    """
+    Request body used to change the current user's password.
+    """
+
+    current_password: str = Field(
+        min_length=1,
+        max_length=128,
+    )
+
+    new_password: str = Field(
+        min_length=8,
+        max_length=128,
+    )
+
+
+class RefreshTokenRequest(BaseModel):
+    """
+    Request body used to refresh an access token.
+    """
+
+    refresh_token: str = Field(
+        min_length=1,
+    )

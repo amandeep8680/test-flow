@@ -29,17 +29,38 @@ class Messages:
     INVALID_REQUEST = "Invalid request."
     RESOURCE_NOT_FOUND = "Resource not found."
     INTERNAL_SERVER_ERROR = "Internal server error."
-
 class AuthMessages:
     INVALID_CREDENTIALS = "Invalid email or password."
     USER_INACTIVE = "User account is inactive."
     ORGANIZATION_INACTIVE = "Organization is inactive."
-    CURRENT_PASSWORD_INCORRECT = "Current password is incorrect."
+
+    CURRENT_PASSWORD_INCORRECT = (
+        "Current password is incorrect."
+    )
+
     NEW_PASSWORD_SAME_AS_CURRENT = (
         "New password must be different from current password."
     )
-    ADMIN_ROLE_NOT_CONFIGURED = "ADMIN role is not configured."
 
+    ADMIN_ROLE_NOT_CONFIGURED = (
+        "ADMIN role is not configured."
+    )
+
+    PASSWORD_CHANGED_SUCCESSFULLY = (
+        "Password changed successfully."
+    )
+
+    INVALID_REFRESH_TOKEN = (
+        "Invalid or expired refresh token."
+    )
+
+    INVALID_TOKEN_TYPE = (
+        "Invalid token type."
+    )
+
+    LOGOUT_SUCCESSFUL = (
+        "Logout successful."
+    )
 
 class OrganizationMessages:
     SLUG_ALREADY_EXISTS = "Organization slug already exists."

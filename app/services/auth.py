@@ -4,22 +4,27 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
+
 from app.models.role import Role
 from app.models.user import User
 from app.models.user_role import UserRole
+
 from app.repositories.organization import OrganizationRepository
 from app.repositories.user import UserRepository
-from app.schemas.auth import LoginRequest, OrganizationSignupRequest
-from app.security.token import (
-    create_access_token,
-    create_refresh_token,
+
+from app.schemas.auth import (
+    LoginRequest,
+    OrganizationSignupRequest,
 )
+
+from app.services.token import TokenService
 
 from app.exception.exceptions import (
     UnauthorizedException,
     ForbiddenException,
     ConflictException,
 )
+
 from app.exception.messages import (
     AuthMessages,
     OrganizationMessages,
@@ -35,6 +40,7 @@ class AuthService:
         self.db = db
         self.organization_repository = OrganizationRepository(db)
         self.user_repository = UserRepository(db)
+        self.token_service = TokenService(db)
 
     async def register_organization(
         self,
@@ -64,7 +70,9 @@ class AuthService:
         )
 
         # 3. Hash admin password using Argon2.
-        password_hash = hash_password(request.admin_password)
+        password_hash = hash_password(
+            request.admin_password
+        )
 
         # 4. Create initial admin user.
         admin_user = User(
@@ -80,7 +88,6 @@ class AuthService:
 
         self.db.add(admin_user)
 
-        # Make sure admin_user.id is available.
         await self.db.flush()
 
         # 5. Find the system ADMIN role.
@@ -103,7 +110,7 @@ class AuthService:
 
         self.db.add(user_role)
 
-        # 7. Commit organization + user + role assignment together.
+        # 7. Commit organization + user + role assignment.
         await self.db.commit()
 
         await self.db.refresh(organization)
@@ -111,9 +118,13 @@ class AuthService:
 
         return organization, admin_user
 
-    async def login(self, request: LoginRequest):
+    async def login(
+        self,
+        request: LoginRequest,
+    ):
         """
-        Authenticate a user and generate access and refresh tokens.
+        Authenticate a user and generate
+        access and refresh tokens.
         """
 
         # 1. Find user by email.
@@ -121,7 +132,6 @@ class AuthService:
             str(request.email).lower()
         )
 
-        # Do not reveal whether the email exists.
         if user is None:
             raise UnauthorizedException(
                 AuthMessages.INVALID_CREDENTIALS
@@ -133,7 +143,7 @@ class AuthService:
                 AuthMessages.USER_INACTIVE
             )
 
-        # 3. Verify password against Argon2 hash.
+        # 3. Verify password.
         if not verify_password(
             request.password,
             user.password_hash,
@@ -142,7 +152,7 @@ class AuthService:
                 AuthMessages.INVALID_CREDENTIALS
             )
 
-        # 4. Check whether user's organization is active.
+        # 4. Check organization status.
         organization = await self.organization_repository.get_by_id(
             user.organization_id
         )
@@ -155,30 +165,38 @@ class AuthService:
         # 5. Load user's roles.
         result = await self.db.execute(
             select(Role)
-            .join(UserRole, UserRole.role_id == Role.id)
-            .where(UserRole.user_id == user.id)
+            .join(
+                UserRole,
+                UserRole.role_id == Role.id,
+            )
+            .where(
+                UserRole.user_id == user.id
+            )
         )
 
         roles = result.scalars().all()
-        role_names = [role.name for role in roles]
 
-        # 6. Update last successful login time.
-        user.last_login_at = datetime.now(timezone.utc)
+        role_names = [
+            role.name
+            for role in roles
+        ]
 
-        # 7. Generate access token.
-        access_token = create_access_token(
-            user_id=user.id,
-            organization_id=user.organization_id,
+        # 6. Update last successful login.
+        user.last_login_at = datetime.now(
+            timezone.utc
         )
 
-        # 8. Generate refresh token.
-        refresh_token = create_refresh_token(
-            user_id=user.id,
-            organization_id=user.organization_id,
+        # 7. Create and save tokens.
+        access_token, refresh_token = (
+            await self.token_service.create_tokens(
+                user_id=user.id,
+                organization_id=user.organization_id,
+            )
         )
 
-        # 9. Persist last_login_at.
+        # 8. Commit login changes + refresh token.
         await self.db.commit()
+
         await self.db.refresh(user)
 
         return {
@@ -195,6 +213,10 @@ class AuthService:
         current_password: str,
         new_password: str,
     ):
+        """
+        Change the user's password.
+        """
+
         if not verify_password(
             current_password,
             user.password_hash,
@@ -208,9 +230,11 @@ class AuthService:
                 AuthMessages.NEW_PASSWORD_SAME_AS_CURRENT
             )
 
-        user.password_hash = hash_password(new_password)
+        user.password_hash = hash_password(
+            new_password
+        )
 
-        # Password successfully changed
+        # Keep existing application behavior.
         user.must_change_password = True
 
         await self.db.commit()

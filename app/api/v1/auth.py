@@ -1,18 +1,23 @@
-
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.user import User
+
 from app.schemas.auth import (
     ChangePasswordRequest,
     LoginRequest,
     OrganizationSignupRequest,
+    RefreshTokenRequest,
     TokenResponse,
 )
+
 from app.schemas.organization import OrganizationResponse
+
 from app.services.auth import AuthService
+from app.services.token import TokenService
+
 from app.exception.messages import AuthMessages
 
 
@@ -87,3 +92,40 @@ async def change_password(
         "message": AuthMessages.PASSWORD_CHANGED_SUCCESSFULLY
     }
 
+
+@router.post(
+    "/refresh",
+    status_code=status.HTTP_200_OK,
+)
+async def refresh_token(
+    request: RefreshTokenRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Generate a new access token using a valid refresh token.
+    """
+
+    token_service = TokenService(db)
+
+    return await token_service.refresh_access_token(
+        request.refresh_token
+    )
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_200_OK,
+)
+async def logout(
+    request: RefreshTokenRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Revoke the refresh token and logout the user.
+    """
+
+    token_service = TokenService(db)
+
+    return await token_service.logout(
+        request.refresh_token
+    )

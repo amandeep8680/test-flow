@@ -2,7 +2,6 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-default_temp_password: str
 
 class Settings(BaseSettings):
     app_name: str = "Test Flow API"
