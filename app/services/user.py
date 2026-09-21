@@ -1,3 +1,4 @@
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -116,4 +117,16 @@ class UserService:
         await self.db.refresh(user)
 
         return user, role.name, temporary_password
+
+    async def get_users(
+        self,
+        organization_id,
+    ):
+        """
+        Get all users from the ADMIN's organization.
+        """
+
+        return await self.user_repository.get_all(
+            organization_id=organization_id
+        )
 

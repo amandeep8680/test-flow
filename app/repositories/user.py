@@ -1,3 +1,4 @@
+
 from uuid import UUID
 
 from sqlalchemy import select
@@ -58,6 +59,24 @@ class UserRepository:
 
         return result.scalar_one_or_none()
 
+    async def get_all(
+        self,
+        organization_id: UUID,
+    ) -> list[User]:
+        """
+        Get all users within an organization.
+        """
+
+        result = await self.db.execute(
+            select(User)
+            .where(
+                User.organization_id == organization_id
+            )
+            .order_by(User.created_at.desc())
+        )
+
+        return list(result.scalars().all())
+
     async def create(
         self,
         organization_id: UUID,
@@ -91,3 +110,4 @@ class UserRepository:
         await self.db.flush()
 
         return user
+

@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,6 +51,25 @@ async def get_roles(
     return result.scalars().all()
 
 
+@router.get(
+    "",
+    response_model=list[UserResponse],
+)
+async def get_users(
+    current_admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Return all users from the ADMIN's organization.
+    """
+
+    user_service = UserService(db)
+
+    return await user_service.get_users(
+        organization_id=current_admin.organization_id,
+    )
+
+
 @router.post(
     "",
     response_model=CreateUserResponse,
@@ -85,3 +105,4 @@ async def create_user(
         must_change_password=user.must_change_password,
         temporary_password=temporary_password,
     )
+
