@@ -68,3 +68,37 @@ class OrganizationMessages:
 
 class UserMessages:
     USER_NOT_FOUND = "User not found."
+
+
+
+class ProjectMessages:
+    PROJECT_NOT_FOUND = "Project not found"
+
+    PROJECT_KEY_ALREADY_EXISTS = (
+        "A project with this key already exists"
+    )
+
+    PROJECT_ALREADY_ACTIVE = (
+        "Project is already active"
+    )
+
+    PROJECT_ALREADY_INACTIVE = (
+        "Project is already inactive"
+    )
+
+    USER_NOT_FOUND = "User not found"
+
+    MEMBER_ALREADY_EXISTS = (
+        "User is already a member of this project"
+    )
+
+    PROJECT_MEMBER_NOT_FOUND = (
+        "Project member not found"
+    )
+
+    INVALID_USER_ROLE = (
+        "Invalid user role"
+    )
+    PERMISSION_DENIED = (
+        "You do not have permission to perform this action"
+    )
