@@ -24,3 +24,5 @@ __all__ = [
     "CreateUserRequest",
     "CreateUserResponse",
 ]
+
+from app.models.project import Project

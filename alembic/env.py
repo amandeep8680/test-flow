@@ -15,6 +15,12 @@ from app.models.user import User  # noqa: F401
 from app.models.role import Role  # noqa: F401
 from app.models.user_role import UserRole  # noqa: F401
 from app.models.refresh_token import RefreshToken  # noqa: F401
+from app.models.project import Project  # noqa: F401
+from app.models.project_member import ProjectMember  # noqa: F401
+
+
+
+
 config = context.config
 
 settings = get_settings()
