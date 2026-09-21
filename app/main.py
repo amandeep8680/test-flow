@@ -3,7 +3,7 @@ from sqlalchemy import text
 
 from app.api.v1.router import api_router
 from app.core.database import AsyncSessionLocal
-from core.cors import setup_cors
+from app.core.cors import setup_cors
 
 app = FastAPI(
     title="Test Flow API",
