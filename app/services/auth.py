@@ -9,13 +9,22 @@ from app.models.user import User
 from app.models.user_role import UserRole
 from app.repositories.organization import OrganizationRepository
 from app.repositories.user import UserRepository
-from app.schemas import user
-from app.schemas import user
 from app.schemas.auth import LoginRequest, OrganizationSignupRequest
 from app.security.token import (
     create_access_token,
     create_refresh_token,
 )
+
+from app.exception.exceptions import (
+    UnauthorizedException,
+    ForbiddenException,
+    ConflictException,
+)
+from app.exception.messages import (
+    AuthMessages,
+    OrganizationMessages,
+)
+
 
 class AuthService:
     """
@@ -44,7 +53,9 @@ class AuthService:
         )
 
         if existing_organization:
-            raise ValueError("Organization slug already exists")
+            raise ConflictException(
+                OrganizationMessages.SLUG_ALREADY_EXISTS
+            )
 
         # 2. Create organization.
         organization = await self.organization_repository.create(
@@ -69,7 +80,7 @@ class AuthService:
 
         self.db.add(admin_user)
 
-        # Make sure admin_user.id is available before creating user_roles.
+        # Make sure admin_user.id is available.
         await self.db.flush()
 
         # 5. Find the system ADMIN role.
@@ -80,7 +91,9 @@ class AuthService:
         admin_role = result.scalar_one_or_none()
 
         if admin_role is None:
-            raise ValueError("ADMIN role is not configured")
+            raise ConflictException(
+                AuthMessages.ADMIN_ROLE_NOT_CONFIGURED
+            )
 
         # 6. Assign ADMIN role to initial user.
         user_role = UserRole(
@@ -93,14 +106,10 @@ class AuthService:
         # 7. Commit organization + user + role assignment together.
         await self.db.commit()
 
-        # Refresh objects after commit.
         await self.db.refresh(organization)
         await self.db.refresh(admin_user)
 
         return organization, admin_user
-
-
-
 
     async def login(self, request: LoginRequest):
         """
@@ -114,18 +123,24 @@ class AuthService:
 
         # Do not reveal whether the email exists.
         if user is None:
-            raise ValueError("Invalid email or password")
+            raise UnauthorizedException(
+                AuthMessages.INVALID_CREDENTIALS
+            )
 
         # 2. Check whether user is active.
         if not user.is_active:
-            raise ValueError("User account is inactive")
+            raise ForbiddenException(
+                AuthMessages.USER_INACTIVE
+            )
 
         # 3. Verify password against Argon2 hash.
         if not verify_password(
             request.password,
             user.password_hash,
         ):
-            raise ValueError("Invalid email or password")
+            raise UnauthorizedException(
+                AuthMessages.INVALID_CREDENTIALS
+            )
 
         # 4. Check whether user's organization is active.
         organization = await self.organization_repository.get_by_id(
@@ -133,7 +148,9 @@ class AuthService:
         )
 
         if organization is None or not organization.is_active:
-            raise ValueError("Organization is inactive")
+            raise ForbiddenException(
+                AuthMessages.ORGANIZATION_INACTIVE
+            )
 
         # 5. Load user's roles.
         result = await self.db.execute(
@@ -143,7 +160,6 @@ class AuthService:
         )
 
         roles = result.scalars().all()
-
         role_names = [role.name for role in roles]
 
         # 6. Update last successful login time.
@@ -179,11 +195,18 @@ class AuthService:
         current_password: str,
         new_password: str,
     ):
-        if not verify_password(current_password, user.password_hash):
-            raise ValueError("Current password is incorrect")
+        if not verify_password(
+            current_password,
+            user.password_hash,
+        ):
+            raise UnauthorizedException(
+                AuthMessages.CURRENT_PASSWORD_INCORRECT
+            )
 
         if current_password == new_password:
-            raise ValueError("New password must be different from current password")
+            raise ConflictException(
+                AuthMessages.NEW_PASSWORD_SAME_AS_CURRENT
+            )
 
         user.password_hash = hash_password(new_password)
 

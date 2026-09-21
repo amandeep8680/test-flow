@@ -2,6 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.organization import Organization
 from app.repositories.organization import OrganizationRepository
+from app.exception.exceptions import ConflictException
+from app.exception.messages import OrganizationMessages
 
 
 class OrganizationService:
@@ -29,7 +31,9 @@ class OrganizationService:
         )
 
         if existing_organization:
-            raise ValueError("Organization slug already exists")
+            raise ConflictException(
+                OrganizationMessages.SLUG_ALREADY_EXISTS
+            )
 
         organization = await self.organization_repository.create(
             name=name,

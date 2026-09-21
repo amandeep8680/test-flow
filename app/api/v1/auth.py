@@ -1,27 +1,26 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.auth import (
-    LoginRequest,
-    OrganizationSignupRequest,
-    TokenResponse,
-)
-from app.schemas.organization import OrganizationResponse
-from app.services.auth import AuthService
 from app.dependencies.auth import get_current_user
 from app.models.user import User
-
-router = APIRouter(
-    prefix="/auth",
-    tags=["Authentication"],
-)
 from app.schemas.auth import (
     ChangePasswordRequest,
     LoginRequest,
     OrganizationSignupRequest,
     TokenResponse,
 )
+from app.schemas.organization import OrganizationResponse
+from app.services.auth import AuthService
+from app.exception.messages import AuthMessages
+
+
+router = APIRouter(
+    prefix="/auth",
+    tags=["Authentication"],
+)
+
 
 @router.post(
     "/register-organization",
@@ -38,20 +37,11 @@ async def register_organization(
 
     auth_service = AuthService(db)
 
-    try:
-        organization, _admin_user = (
-            await auth_service.register_organization(request)
-        )
+    organization, _admin_user = (
+        await auth_service.register_organization(request)
+    )
 
-        return organization
-
-    except ValueError as exc:
-        await db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(exc),
-        )
+    return organization
 
 
 @router.post(
@@ -69,16 +59,8 @@ async def login(
 
     auth_service = AuthService(db)
 
-    try:
-        return await auth_service.login(request)
+    return await auth_service.login(request)
 
-    except ValueError as exc:
-        await db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(exc),
-        )
 
 @router.post(
     "/change-password",
@@ -89,23 +71,19 @@ async def change_password(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """
+    Change the current user's password.
+    """
+
     auth_service = AuthService(db)
 
-    try:
-        await auth_service.change_password(
-            user=current_user,
-            current_password=request.current_password,
-            new_password=request.new_password,
-        )
+    await auth_service.change_password(
+        user=current_user,
+        current_password=request.current_password,
+        new_password=request.new_password,
+    )
 
-        return {
-            "message": "Password changed successfully"
-        }
+    return {
+        "message": AuthMessages.PASSWORD_CHANGED_SUCCESSFULLY
+    }
 
-    except ValueError as exc:
-        await db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        )

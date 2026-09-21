@@ -9,6 +9,12 @@ from app.models.user_role import UserRole
 from app.repositories.user import UserRepository
 from app.schemas.user import CreateUserRequest
 
+from app.exception.exceptions import (
+    ConflictException,
+    BadRequestException,
+)
+from app.exception.messages import UserMessages
+
 
 settings = get_settings()
 
@@ -38,7 +44,9 @@ class UserService:
         )
 
         if existing_user:
-            raise ValueError("Email already exists")
+            raise ConflictException(
+                UserMessages.EMAIL_ALREADY_EXISTS
+            )
 
         # 2. Check duplicate username within organization.
         existing_username = await self.user_repository.get_by_username(
@@ -47,7 +55,9 @@ class UserService:
         )
 
         if existing_username:
-            raise ValueError("Username already exists")
+            raise ConflictException(
+                UserMessages.USERNAME_ALREADY_EXISTS
+            )
 
         # 3. Find requested role.
         result = await self.db.execute(
@@ -59,15 +69,17 @@ class UserService:
         role = result.scalar_one_or_none()
 
         if role is None:
-            raise ValueError("Invalid role")
+            raise BadRequestException(
+                UserMessages.INVALID_ROLE
+            )
 
         # 4. Normal users cannot assign ADMIN.
         #
         # ADMIN creation is handled separately during
         # organization signup.
         if role.name == "ADMIN":
-            raise ValueError(
-                "ADMIN role cannot be assigned through user creation"
+            raise BadRequestException(
+                UserMessages.ADMIN_ROLE_NOT_ALLOWED
             )
 
         # 5. Get temporary password from environment.
