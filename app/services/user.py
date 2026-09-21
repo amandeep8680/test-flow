@@ -91,6 +91,7 @@ class UserService:
         )
 
         # 7. Create user in the ADMIN's organization.
+        # New users must change the temporary password.
         user = await self.user_repository.create(
             organization_id=organization_id,
             email=str(request.email).lower(),
@@ -98,7 +99,7 @@ class UserService:
             password_hash=password_hash,
             first_name=request.first_name,
             last_name=request.last_name,
-            must_change_password=False,
+            must_change_password=True,
         )
 
         # 8. Assign role.
@@ -115,3 +116,4 @@ class UserService:
         await self.db.refresh(user)
 
         return user, role.name, temporary_password
+

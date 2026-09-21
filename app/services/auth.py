@@ -235,7 +235,7 @@ class AuthService:
         )
 
         # Keep existing application behavior.
-        user.must_change_password = True
+        user.must_change_password = False
 
         await self.db.commit()
         await self.db.refresh(user)
