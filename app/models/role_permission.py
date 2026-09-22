@@ -7,29 +7,20 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 
-class UserRole(Base):
-    __tablename__ = "user_roles"
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
 
     __table_args__ = (
         UniqueConstraint(
-            "user_id",
             "role_id",
-            name="uq_user_role",
+            "permission_id",
+            name="uq_role_permission",
         ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True,
         default=uuid.uuid4,
-    )
-
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(
-            "users.id",
-            ondelete="CASCADE",
-        ),
-        nullable=False,
-        index=True,
     )
 
     role_id: Mapped[uuid.UUID] = mapped_column(
@@ -41,12 +32,21 @@ class UserRole(Base):
         index=True,
     )
 
-    user: Mapped["User"] = relationship(
-        "User",
-        back_populates="user_roles",
+    permission_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(
+            "permissions.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
     )
 
     role: Mapped["Role"] = relationship(
         "Role",
-        back_populates="user_roles",
+        back_populates="role_permissions",
+    )
+
+    permission: Mapped["Permission"] = relationship(
+        "Permission",
+        back_populates="role_permissions",
     )

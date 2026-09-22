@@ -1,15 +1,21 @@
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.dependencies.auth import get_current_user
+from app.dependencies.permissions import require_project_permission
 from app.models.user import User
 from app.schemas.project import (
     ProjectCreateRequest,
     ProjectResponse,
     ProjectUpdateRequest,
+)
+
+from app.dependencies.permissions import (
+    require_permission,
+    require_project_permission,
 )
 from app.schemas.project_member import (
     ProjectMemberCreateRequest,
@@ -28,7 +34,6 @@ router = APIRouter(
 # =========================================================
 # CREATE PROJECT
 # =========================================================
-
 @router.post(
     "",
     response_model=ProjectResponse,
@@ -36,7 +41,9 @@ router = APIRouter(
 )
 async def create_project(
     request: ProjectCreateRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_permission("project.create")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -70,7 +77,9 @@ async def get_projects(
         default=None,
         description="Filter projects by active status",
     ),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.view")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -91,7 +100,9 @@ async def get_projects(
     response_model=list[ProjectResponse],
 )
 async def get_active_projects(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.view")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -110,7 +121,9 @@ async def get_active_projects(
     response_model=list[ProjectResponse],
 )
 async def get_inactive_projects(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.view")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -130,7 +143,9 @@ async def get_inactive_projects(
 )
 async def get_project_members(
     project_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.manage_members")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -150,7 +165,9 @@ async def get_project_members(
 )
 async def get_project_summary(
     project_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.view")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -171,7 +188,9 @@ async def get_project_summary(
 )
 async def delete_project_permanently(
     project_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.delete")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -192,7 +211,9 @@ async def delete_project_permanently(
 )
 async def get_project(
     project_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.view")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -214,7 +235,9 @@ async def get_project(
 async def update_project(
     project_id: UUID,
     request: ProjectUpdateRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.edit")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -237,7 +260,9 @@ async def update_project(
 )
 async def deactivate_project(
     project_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.delete")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -258,7 +283,9 @@ async def deactivate_project(
 )
 async def activate_project(
     project_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.edit")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -281,7 +308,9 @@ async def activate_project(
 async def add_project_member(
     project_id: UUID,
     request: ProjectMemberCreateRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.manage_members")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -304,7 +333,9 @@ async def add_project_member(
 async def remove_project_member(
     project_id: UUID,
     user_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.manage_members")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -328,7 +359,9 @@ async def update_project_member_role(
     project_id: UUID,
     user_id: UUID,
     request: ProjectMemberUpdateRoleRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_project_permission("project.manage_members")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = ProjectService(db)
@@ -339,4 +372,3 @@ async def update_project_member_role(
         user_id=user_id,
         request=request,
     )
-

@@ -1,8 +1,10 @@
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.security import hash_password, verify_password
 
 from app.models.role import Role
@@ -18,6 +20,7 @@ from app.schemas.auth import (
 )
 
 from app.services.token import TokenService
+from app.seed.rbac import seed_rbac
 
 from app.exception.exceptions import (
     UnauthorizedException,
@@ -69,12 +72,33 @@ class AuthService:
             slug=request.organization_slug,
         )
 
-        # 3. Hash admin password using Argon2.
+        await self.db.flush()
+
+        # 3. Create ADMIN role for this organization.
+        admin_role = Role(
+            organization_id=organization.id,
+            name="ADMIN",
+            description="Organization administrator",
+            is_active=True,
+        )
+
+        self.db.add(admin_role)
+
+        await self.db.flush()
+
+        # 4. Create permissions and assign all permissions
+        #    to this organization's ADMIN role.
+        await seed_rbac(
+            db=self.db,
+            organization_id=organization.id,
+        )
+
+        # 5. Hash admin password.
         password_hash = hash_password(
             request.admin_password
         )
 
-        # 4. Create initial admin user.
+        # 6. Create initial admin user.
         admin_user = User(
             organization_id=organization.id,
             email=str(request.admin_email).lower(),
@@ -90,19 +114,7 @@ class AuthService:
 
         await self.db.flush()
 
-        # 5. Find the system ADMIN role.
-        result = await self.db.execute(
-            select(Role).where(Role.name == "ADMIN")
-        )
-
-        admin_role = result.scalar_one_or_none()
-
-        if admin_role is None:
-            raise ConflictException(
-                AuthMessages.ADMIN_ROLE_NOT_CONFIGURED
-            )
-
-        # 6. Assign ADMIN role to initial user.
+        # 7. Assign ADMIN role to initial user.
         user_role = UserRole(
             user_id=admin_user.id,
             role_id=admin_role.id,
@@ -110,7 +122,7 @@ class AuthService:
 
         self.db.add(user_role)
 
-        # 7. Commit organization + user + role assignment.
+        # 8. Commit everything together.
         await self.db.commit()
 
         await self.db.refresh(organization)
@@ -127,7 +139,6 @@ class AuthService:
         access and refresh tokens.
         """
 
-        # 1. Find user by email.
         user = await self.user_repository.get_by_email(
             str(request.email).lower()
         )
@@ -137,13 +148,11 @@ class AuthService:
                 AuthMessages.INVALID_CREDENTIALS
             )
 
-        # 2. Check whether user is active.
         if not user.is_active:
             raise ForbiddenException(
                 AuthMessages.USER_INACTIVE
             )
 
-        # 3. Verify password.
         if not verify_password(
             request.password,
             user.password_hash,
@@ -152,7 +161,6 @@ class AuthService:
                 AuthMessages.INVALID_CREDENTIALS
             )
 
-        # 4. Check organization status.
         organization = await self.organization_repository.get_by_id(
             user.organization_id
         )
@@ -162,7 +170,6 @@ class AuthService:
                 AuthMessages.ORGANIZATION_INACTIVE
             )
 
-        # 5. Load user's roles.
         result = await self.db.execute(
             select(Role)
             .join(
@@ -181,12 +188,10 @@ class AuthService:
             for role in roles
         ]
 
-        # 6. Update last successful login.
         user.last_login_at = datetime.now(
             timezone.utc
         )
 
-        # 7. Create and save tokens.
         access_token, refresh_token = (
             await self.token_service.create_tokens(
                 user_id=user.id,
@@ -194,7 +199,6 @@ class AuthService:
             )
         )
 
-        # 8. Commit login changes + refresh token.
         await self.db.commit()
 
         await self.db.refresh(user)
@@ -234,10 +238,10 @@ class AuthService:
             new_password
         )
 
-        # Keep existing application behavior.
         user.must_change_password = False
 
         await self.db.commit()
         await self.db.refresh(user)
 
         return user
+

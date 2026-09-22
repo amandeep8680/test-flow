@@ -1,19 +1,11 @@
-
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.config import get_settings
 from app.core.security import hash_password
-from app.models.role import Role
-from app.models.user import User
-from app.models.user_role import UserRole
+
 from app.repositories.user import UserRepository
+
 from app.schemas.user import CreateUserRequest
 
-from app.exception.exceptions import (
-    ConflictException,
-    BadRequestException,
-)
+from app.exception.exceptions import ConflictException
 from app.exception.messages import UserMessages
 
 
@@ -25,7 +17,7 @@ class UserService:
     Handles user management business logic.
     """
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db):
         self.db = db
         self.user_repository = UserRepository(db)
 
@@ -35,8 +27,10 @@ class UserService:
         organization_id,
     ):
         """
-        Create a user inside the ADMIN's organization
-        and assign the requested role.
+        Create a user inside the ADMIN's organization.
+
+        Role assignment is handled separately through
+        the User Role API.
         """
 
         # 1. Check duplicate email.
@@ -60,39 +54,15 @@ class UserService:
                 UserMessages.USERNAME_ALREADY_EXISTS
             )
 
-        # 3. Find requested role.
-        result = await self.db.execute(
-            select(Role).where(
-                Role.name == request.role.upper()
-            )
-        )
-
-        role = result.scalar_one_or_none()
-
-        if role is None:
-            raise BadRequestException(
-                UserMessages.INVALID_ROLE
-            )
-
-        # 4. Normal users cannot assign ADMIN.
-        #
-        # ADMIN creation is handled separately during
-        # organization signup.
-        if role.name == "ADMIN":
-            raise BadRequestException(
-                UserMessages.ADMIN_ROLE_NOT_ALLOWED
-            )
-
-        # 5. Get temporary password from environment.
+        # 3. Get temporary password.
         temporary_password = settings.default_temp_password
 
-        # 6. Hash temporary password.
+        # 4. Hash temporary password.
         password_hash = hash_password(
             temporary_password
         )
 
-        # 7. Create user in the ADMIN's organization.
-        # New users must change the temporary password.
+        # 5. Create user.
         user = await self.user_repository.create(
             organization_id=organization_id,
             email=str(request.email).lower(),
@@ -103,20 +73,12 @@ class UserService:
             must_change_password=True,
         )
 
-        # 8. Assign role.
-        user_role = UserRole(
-            user_id=user.id,
-            role_id=role.id,
-        )
-
-        self.db.add(user_role)
-
-        # 9. Commit user + role assignment together.
+        # 6. Commit user creation only.
         await self.db.commit()
 
         await self.db.refresh(user)
 
-        return user, role.name, temporary_password
+        return user, temporary_password
 
     async def get_users(
         self,
@@ -129,4 +91,3 @@ class UserService:
         return await self.user_repository.get_all(
             organization_id=organization_id
         )
-

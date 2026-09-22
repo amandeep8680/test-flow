@@ -26,15 +26,13 @@ class CreateUserRequest(BaseModel):
         max_length=100,
     )
 
-    role: str = Field(
-        min_length=1,
-        max_length=50,
-    )
-
 
 class CreateUserResponse(BaseModel):
     """
     Response returned after creating a user.
+
+    Role is assigned separately through the
+    User Role API.
     """
 
     id: UUID
@@ -43,7 +41,6 @@ class CreateUserResponse(BaseModel):
     username: str
     first_name: str
     last_name: str
-    role: str
     is_active: bool
     must_change_password: bool
     temporary_password: str
@@ -54,7 +51,9 @@ class UserResponse(BaseModel):
     Response returned when fetching users.
     """
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
     id: UUID
     organization_id: UUID
@@ -64,4 +63,3 @@ class UserResponse(BaseModel):
     last_name: str
     is_active: bool
     must_change_password: bool
-
