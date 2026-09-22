@@ -9,7 +9,12 @@ from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.schemas.user import CreateUserRequest, CreateUserResponse
 from app.services.user import UserService
+from uuid import UUID
 
+from sqlalchemy import select
+
+from app.models.role import Role
+from app.models.user_role import UserRole
 
 router = APIRouter(
     prefix="/users",
@@ -23,9 +28,25 @@ router = APIRouter(
 )
 async def get_user_info(
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    return current_user
+    user_service = UserService(db)
 
+    user, roles = await user_service.get_user_with_roles(
+        user_id=current_user.id
+    )
+
+    return UserResponse(
+        id=user.id,
+        organization_id=user.organization_id,
+        email=user.email,
+        username=user.username,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        is_active=user.is_active,
+        must_change_password=user.must_change_password,
+        roles=roles,
+    )
 
 @router.get(
     "",
@@ -39,9 +60,25 @@ async def get_users(
 ):
     user_service = UserService(db)
 
-    return await user_service.get_users(
+    users = await user_service.get_users(
         organization_id=current_user.organization_id,
+        exclude_user_id=current_user.id,
     )
+
+    return [
+        UserResponse(
+            id=user.id,
+            organization_id=user.organization_id,
+            email=user.email,
+            username=user.username,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            is_active=user.is_active,
+            must_change_password=user.must_change_password,
+            roles=roles,
+        )
+        for user, roles in users
+    ]
 
 
 @router.post(

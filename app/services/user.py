@@ -8,7 +8,12 @@ from app.schemas.user import CreateUserRequest
 from app.exception.exceptions import ConflictException
 from app.exception.messages import UserMessages
 
+from uuid import UUID
 
+from sqlalchemy import select
+
+from app.models.role import Role
+from app.models.user_role import UserRole
 settings = get_settings()
 
 
@@ -83,11 +88,35 @@ class UserService:
     async def get_users(
         self,
         organization_id,
+        exclude_user_id,
     ):
-        """
-        Get all users from the ADMIN's organization.
-        """
-
-        return await self.user_repository.get_all(
-            organization_id=organization_id
+        users = await self.user_repository.get_all(
+            organization_id=organization_id,
+            exclude_user_id=exclude_user_id,
         )
+
+        return users
+
+    async def get_user_with_roles(
+    self,
+    user_id: UUID,
+    ):
+        user = await self.user_repository.get_by_id(user_id)
+
+        if user is None:
+            return None
+
+        result = await self.db.execute(
+            select(Role.name)
+            .join(
+                UserRole,
+                UserRole.role_id == Role.id,
+            )
+            .where(
+                UserRole.user_id == user.id
+        )
+    )
+
+        roles = list(result.scalars().all())
+
+        return user, roles

@@ -1,21 +1,18 @@
-
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.dependencies.permissions import require_project_permission
+from app.dependencies.permissions import (
+    require_permission,
+    require_project_permission,
+)
 from app.models.user import User
 from app.schemas.project import (
     ProjectCreateRequest,
     ProjectResponse,
     ProjectUpdateRequest,
-)
-
-from app.dependencies.permissions import (
-    require_permission,
-    require_project_permission,
 )
 from app.schemas.project_member import (
     ProjectMemberCreateRequest,
@@ -33,7 +30,9 @@ router = APIRouter(
 
 # =========================================================
 # CREATE PROJECT
+# POST /projects
 # =========================================================
+
 @router.post(
     "",
     response_model=ProjectResponse,
@@ -56,12 +55,15 @@ async def create_project(
 
 # =========================================================
 # GET ALL PROJECTS
-# Active + Inactive
+# GET /projects
 #
 # Optional:
 # ?search=backend
 # ?is_active=true
 # ?search=backend&is_active=true
+#
+# Organization-scoped
+# NO project_id
 # =========================================================
 
 @router.get(
@@ -78,7 +80,7 @@ async def get_projects(
         description="Filter projects by active status",
     ),
     current_user: User = Depends(
-        require_project_permission("project.view")
+        require_permission("project.view")
     ),
     db: AsyncSession = Depends(get_db),
 ):
@@ -93,6 +95,10 @@ async def get_projects(
 
 # =========================================================
 # GET ACTIVE PROJECTS
+# GET /projects/active
+#
+# Organization-scoped
+# NO project_id
 # =========================================================
 
 @router.get(
@@ -101,7 +107,7 @@ async def get_projects(
 )
 async def get_active_projects(
     current_user: User = Depends(
-        require_project_permission("project.view")
+        require_permission("project.view")
     ),
     db: AsyncSession = Depends(get_db),
 ):
@@ -114,6 +120,10 @@ async def get_active_projects(
 
 # =========================================================
 # GET INACTIVE PROJECTS
+# GET /projects/inactive
+#
+# Organization-scoped
+# NO project_id
 # =========================================================
 
 @router.get(
@@ -122,7 +132,7 @@ async def get_active_projects(
 )
 async def get_inactive_projects(
     current_user: User = Depends(
-        require_project_permission("project.view")
+        require_permission("project.view")
     ),
     db: AsyncSession = Depends(get_db),
 ):
@@ -135,6 +145,9 @@ async def get_inactive_projects(
 
 # =========================================================
 # GET PROJECT MEMBERS
+# GET /projects/{project_id}/members
+#
+# Project-scoped
 # =========================================================
 
 @router.get(
@@ -158,6 +171,9 @@ async def get_project_members(
 
 # =========================================================
 # GET PROJECT SUMMARY
+# GET /projects/{project_id}/summary
+#
+# Project-scoped
 # =========================================================
 
 @router.get(
@@ -180,6 +196,9 @@ async def get_project_summary(
 
 # =========================================================
 # PERMANENTLY DELETE PROJECT
+# DELETE /projects/{project_id}/permanent
+#
+# Project-scoped
 # =========================================================
 
 @router.delete(
@@ -203,6 +222,9 @@ async def delete_project_permanently(
 
 # =========================================================
 # GET SINGLE PROJECT
+# GET /projects/{project_id}
+#
+# Project-scoped
 # =========================================================
 
 @router.get(
@@ -226,6 +248,9 @@ async def get_project(
 
 # =========================================================
 # UPDATE PROJECT
+# PATCH /projects/{project_id}
+#
+# Project-scoped
 # =========================================================
 
 @router.patch(
@@ -251,7 +276,10 @@ async def update_project(
 
 # =========================================================
 # DEACTIVATE PROJECT
-# DELETE = Mark as Inactive
+# DELETE /projects/{project_id}
+#
+# Soft delete / mark inactive
+# Project-scoped
 # =========================================================
 
 @router.delete(
@@ -275,6 +303,9 @@ async def deactivate_project(
 
 # =========================================================
 # ACTIVATE PROJECT
+# POST /projects/{project_id}/activate
+#
+# Project-scoped
 # =========================================================
 
 @router.post(
@@ -298,6 +329,9 @@ async def activate_project(
 
 # =========================================================
 # ADD PROJECT MEMBER
+# POST /projects/{project_id}/members
+#
+# Project-scoped
 # =========================================================
 
 @router.post(
@@ -324,6 +358,9 @@ async def add_project_member(
 
 # =========================================================
 # REMOVE PROJECT MEMBER
+# DELETE /projects/{project_id}/members/{user_id}
+#
+# Project-scoped
 # =========================================================
 
 @router.delete(
@@ -349,6 +386,9 @@ async def remove_project_member(
 
 # =========================================================
 # UPDATE PROJECT MEMBER ROLE
+# PATCH /projects/{project_id}/members/{user_id}
+#
+# Project-scoped
 # =========================================================
 
 @router.patch(

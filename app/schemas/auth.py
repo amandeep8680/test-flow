@@ -74,7 +74,7 @@ class UserResponse(BaseModel):
     last_name: str
     is_active: bool
     must_change_password: bool
-
+    roles: list[str] = Field(default_factory=list)
 
 class TokenResponse(BaseModel):
     """
