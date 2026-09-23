@@ -1,46 +1,25 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
 
-class Project(Base):
-    __tablename__ = "projects"
+class Tag(Base):
+    __tablename__ = "tags"
 
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True,
         default=uuid.uuid4,
     )
 
-    organization_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-
     name: Mapped[str] = mapped_column(
-        String(150),
+        String(100),
         nullable=False,
-    )
-
-    key: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
+        unique=True,
         index=True,
-    )
-
-    description: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        nullable=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -56,9 +35,8 @@ class Project(Base):
         nullable=False,
     )
 
-    test_cases = relationship(
-        "TestCase",
-        back_populates="project",
+    test_case_tags = relationship(
+        "TestCaseTag",
+        back_populates="tag",
         cascade="all, delete-orphan",
     )
-

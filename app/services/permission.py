@@ -1,4 +1,3 @@
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,21 +29,24 @@ class PermissionService:
     ):
         name = f"{request.resource}.{request.action}".lower()
 
-        existing = await self.permission_repository.get_by_name(
-            name
-        )
+        existing = await self.permission_repository.get_by_name(name)
 
         if existing:
-            return existing
+            # Permission already exists.
+            # Make sure all active ADMIN roles have it.
+            permission = existing
+        else:
+            permission = await self.permission_repository.create(
+                name=name,
+                description=request.description,
+            )
 
-        permission = await self.permission_repository.create(
-            name=name,
-            description=request.description,
-        )
+            await self.db.flush()
 
-        await self.db.flush()
+        # ---------------------------------------------------------
+        # Give permission to every active ADMIN role
+        # ---------------------------------------------------------
 
-        # Give the new permission to every ADMIN role.
         result = await self.db.execute(
             select(Role.id).where(
                 Role.name == "ADMIN",
@@ -54,13 +56,29 @@ class PermissionService:
 
         admin_role_ids = result.scalars().all()
 
+        # ---------------------------------------------------------
+        # Avoid duplicate RolePermission records
+        # ---------------------------------------------------------
+
         for role_id in admin_role_ids:
-            self.db.add(
-                RolePermission(
-                    role_id=role_id,
-                    permission_id=permission.id,
+            existing_role_permission = await self.db.execute(
+                select(RolePermission.id).where(
+                    RolePermission.role_id == role_id,
+                    RolePermission.permission_id == permission.id,
                 )
             )
+
+            role_permission_exists = (
+                existing_role_permission.scalar_one_or_none()
+            )
+
+            if role_permission_exists is None:
+                self.db.add(
+                    RolePermission(
+                        role_id=role_id,
+                        permission_id=permission.id,
+                    )
+                )
 
         await self.db.commit()
         await self.db.refresh(permission)

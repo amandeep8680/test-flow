@@ -20,6 +20,9 @@ from app.models.project_member import ProjectMember  # noqa: F401
 from app.models.permission import Permission  # noqa: F401
 from app.models.role_permission import RolePermission  # noqa: F401         
 from app.models.project_member_permission import ProjectMemberPermission  # noqa: F401
+from app.models.test_case import TestCase  # noqa: F401
+from app.models.tag import Tag  # noqa: F401
+from app.models.test_case_tag import TestCaseTag  # noqa: F401  
 
 
 
