@@ -93,42 +93,50 @@ class ProjectService:
     async def get_projects(
         self,
         current_user: User,
+        page: int = 1,
+        page_size: int = 20,
         search: str | None = None,
         is_active: bool | None = None,
-    ) -> list[Project]:
+        sort_by: str = "created_at",
+        sort_order: str = "desc",
+    ) -> tuple[list[Project], int]:
         return await self.project_repository.get_all_by_organization(
             organization_id=current_user.organization_id,
+            page=page,
+            page_size=page_size,
             search=search,
             is_active=is_active,
+            sort_by=sort_by,
+            sort_order=sort_order,
         )
 
-    # =========================================================
-    # GET ACTIVE PROJECTS
-    # =========================================================
+    # # =========================================================
+    # # GET ACTIVE PROJECTS
+    # # =========================================================
 
-    async def get_active_projects(
-        self,
-        current_user: User,
-    ) -> list[Project]:
-        return await (
-            self.project_repository.get_active_by_organization(
-                organization_id=current_user.organization_id,
-            )
-        )
+    # async def get_active_projects(
+    #     self,
+    #     current_user: User,
+    # ) -> list[Project]:
+    #     return await (
+    #         self.project_repository.get_active_by_organization(
+    #             organization_id=current_user.organization_id,
+    #         )
+    #     )
 
-    # =========================================================
-    # GET INACTIVE PROJECTS
-    # =========================================================
+    # # =========================================================
+    # # GET INACTIVE PROJECTS
+    # # =========================================================
 
-    async def get_inactive_projects(
-        self,
-        current_user: User,
-    ) -> list[Project]:
-        return await (
-            self.project_repository.get_inactive_by_organization(
-                organization_id=current_user.organization_id,
-            )
-        )
+    # async def get_inactive_projects(
+    #     self,
+    #     current_user: User,
+    # ) -> list[Project]:
+    #     return await (
+    #         self.project_repository.get_inactive_by_organization(
+    #             organization_id=current_user.organization_id,
+    #         )
+    #     )
 
     # =========================================================
     # UPDATE PROJECT

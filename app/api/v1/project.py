@@ -11,6 +11,7 @@ from app.dependencies.permissions import (
 from app.models.user import User
 from app.schemas.project import (
     ProjectCreateRequest,
+    ProjectListResponse,
     ProjectResponse,
     ProjectUpdateRequest,
 )
@@ -68,9 +69,20 @@ async def create_project(
 
 @router.get(
     "",
-    response_model=list[ProjectResponse],
+    response_model=ProjectListResponse,
 )
 async def get_projects(
+    page: int = Query(
+        default=1,
+        ge=1,
+        description="Page number",
+    ),
+    page_size: int = Query(
+        default=20,
+        ge=1,
+        le=100,
+        description="Number of projects per page",
+    ),
     search: str | None = Query(
         default=None,
         description="Search projects by name or key",
@@ -79,6 +91,15 @@ async def get_projects(
         default=None,
         description="Filter projects by active status",
     ),
+    sort_by: str = Query(
+        default="created_at",
+        description="Sort by: created_at, updated_at, name, key",
+    ),
+    sort_order: str = Query(
+        default="desc",
+        pattern="^(asc|desc)$",
+        description="Sort order",
+    ),
     current_user: User = Depends(
         require_permission("project.view")
     ),
@@ -86,10 +107,32 @@ async def get_projects(
 ):
     service = ProjectService(db)
 
-    return await service.get_projects(
-        current_user=current_user,
-        search=search,
-        is_active=is_active,
+    try:
+        projects, total = await service.get_projects(
+            current_user=current_user,
+            page=page,
+            page_size=page_size,
+            search=search,
+            is_active=is_active,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+    except ValueError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    return ProjectListResponse(
+        items=projects,
+        page=page,
+        page_size=page_size,
+        total=total,
+        total_pages=(total + page_size - 1) // page_size
+        if total
+        else 0,
     )
 
 
@@ -101,21 +144,21 @@ async def get_projects(
 # NO project_id
 # =========================================================
 
-@router.get(
-    "/active",
-    response_model=list[ProjectResponse],
-)
-async def get_active_projects(
-    current_user: User = Depends(
-        require_permission("project.view")
-    ),
-    db: AsyncSession = Depends(get_db),
-):
-    service = ProjectService(db)
+# @router.get(
+#     "/active",
+#     response_model=list[ProjectResponse],
+# )
+# async def get_active_projects(
+#     current_user: User = Depends(
+#         require_permission("project.view")
+#     ),
+#     db: AsyncSession = Depends(get_db),
+# ):
+#     service = ProjectService(db)
 
-    return await service.get_active_projects(
-        current_user=current_user,
-    )
+#     return await service.get_active_projects(
+#         current_user=current_user,
+#     )
 
 
 # =========================================================
@@ -126,21 +169,21 @@ async def get_active_projects(
 # NO project_id
 # =========================================================
 
-@router.get(
-    "/inactive",
-    response_model=list[ProjectResponse],
-)
-async def get_inactive_projects(
-    current_user: User = Depends(
-        require_permission("project.view")
-    ),
-    db: AsyncSession = Depends(get_db),
-):
-    service = ProjectService(db)
+# @router.get(
+#     "/inactive",
+#     response_model=list[ProjectResponse],
+# )
+# async def get_inactive_projects(
+#     current_user: User = Depends(
+#         require_permission("project.view")
+#     ),
+#     db: AsyncSession = Depends(get_db),
+# ):
+#     service = ProjectService(db)
 
-    return await service.get_inactive_projects(
-        current_user=current_user,
-    )
+#     return await service.get_inactive_projects(
+#         current_user=current_user,
+#     )
 
 
 # =========================================================

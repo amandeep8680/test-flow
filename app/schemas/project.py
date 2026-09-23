@@ -45,3 +45,11 @@ class ProjectResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+
+class ProjectListResponse(BaseModel):
+    items: list[ProjectResponse]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int

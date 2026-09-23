@@ -11,8 +11,14 @@ from app.schemas.test_case import (
     TestCaseCreateRequest,
     TestCaseResponse,
     TestCaseUpdateRequest,
+    TestCaseListResponse
 )
 from app.services.test_case import TestCaseService
+
+from math import ceil
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.schemas.common import PaginationResponse
 
 
 router = APIRouter(
@@ -68,12 +74,26 @@ async def create_test_case(
     return build_test_case_response(test_case)
 
 
-@router.get(
-    "",
-    response_model=list[TestCaseResponse],
-)
+@router.get("", response_model=TestCaseListResponse)
 async def get_test_cases(
     project_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None),
+    status: str | None = Query(
+        None,
+        pattern="^(draft|active|inactive)$",
+    ),
+    priority: str | None = Query(
+        None,
+        pattern="^(low|medium|high|critical)$",
+    ),
+    tag_id: uuid.UUID | None = Query(None),
+    sort_by: str = Query("created_at"),
+    sort_order: str = Query(
+        "desc",
+        pattern="^(asc|desc)$",
+    ),
     current_user: User = Depends(
         require_project_permission("test_case.view")
     ),
@@ -81,15 +101,34 @@ async def get_test_cases(
 ):
     service = TestCaseService(db)
 
-    test_cases = await service.get_test_cases(
-        project_id=project_id,
+    try:
+        test_cases, total = await service.get_test_cases(
+            project_id=project_id,
+            page=page,
+            page_size=page_size,
+            search=search,
+            status=status,
+            priority=priority,
+            tag_id=tag_id,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    return TestCaseListResponse(
+        items=[
+            build_test_case_response(test_case)
+            for test_case in test_cases
+        ],
+        page=page,
+        page_size=page_size,
+        total=total,
+        total_pages=ceil(total / page_size) if total else 0,
     )
-
-    return [
-        build_test_case_response(test_case)
-        for test_case in test_cases
-    ]
-
 
 @router.get(
     "/{test_case_id}",

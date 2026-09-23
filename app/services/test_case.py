@@ -32,10 +32,27 @@ class TestCaseService:
     async def get_test_cases(
         self,
         project_id: uuid.UUID,
-    ) -> list[TestCase]:
+        page: int = 1,
+        page_size: int = 20,
+        search: str | None = None,
+        status: str | None = None,
+        priority: str | None = None,
+        tag_id: uuid.UUID | None = None,
+        sort_by: str = "created_at",
+        sort_order: str = "desc",
+    ) -> tuple[list[TestCase], int]:
+
         return await self.test_case_repository.get_all(
             project_id=project_id,
-        )
+            page=page,
+            page_size=page_size,
+            search=search,
+            status=status,
+            priority=priority,
+            tag_id=tag_id,
+            sort_by=sort_by,
+            sort_order=sort_order,
+    )
 
     async def create_test_case(
         self,

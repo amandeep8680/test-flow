@@ -139,3 +139,11 @@ class TestCaseResponse(BaseModel):
     tags: list[TagResponse] = Field(
         default_factory=list,
     )
+
+
+class TestCaseListResponse(BaseModel):
+    items: list[TestCaseResponse]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int

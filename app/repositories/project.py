@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.project import Project
@@ -58,79 +58,97 @@ class ProjectRepository:
     async def get_all_by_organization(
         self,
         organization_id: UUID,
+        page: int = 1,
+        page_size: int = 20,
         search: str | None = None,
         is_active: bool | None = None,
-    ) -> list[Project]:
-        """
-        Get projects for the organization.
+        sort_by: str = "created_at",
+        sort_order: str = "desc",
+    ) -> tuple[list[Project], int]:
 
-        Optional filters:
-        - search: Search by project name or key.
-        - is_active: Filter by active/inactive status.
-        """
-
-        query = select(Project).where(
-            Project.organization_id == organization_id,
-        )
+        filters = [
+            Project.organization_id == organization_id
+        ]
 
         if search:
             search_pattern = f"%{search}%"
 
-            query = query.where(
+            filters.append(
                 Project.name.ilike(search_pattern)
                 | Project.key.ilike(search_pattern)
             )
 
         if is_active is not None:
-            query = query.where(
+            filters.append(
                 Project.is_active.is_(is_active)
             )
 
-        query = query.order_by(
-            Project.created_at.desc()
+        count_result = await self.db.execute(
+            select(func.count(Project.id))
+            .where(*filters)
         )
 
-        result = await self.db.execute(query)
+        total = count_result.scalar_one()
 
-        return list(result.scalars().all())
+        sort_columns = {
+            "created_at": Project.created_at,
+            "updated_at": Project.updated_at,
+            "name": Project.name,
+            "key": Project.key,
+        }
 
-    async def get_active_by_organization(
-        self,
-        organization_id: UUID,
-    ) -> list[Project]:
-        """
-        Get only active projects for the organization.
-        """
+        sort_column = sort_columns.get(sort_by)
+
+        if sort_column is None:
+            raise ValueError("Invalid sort field.")
+
+        sort_column = (
+            sort_column.asc()
+            if sort_order == "asc"
+            else sort_column.desc()
+        )
+
+        offset = (page - 1) * page_size
 
         result = await self.db.execute(
             select(Project)
-            .where(
-                Project.organization_id == organization_id,
-                Project.is_active.is_(True),
-            )
-            .order_by(Project.created_at.desc())
+            .where(*filters)
+            .order_by(sort_column)
+            .offset(offset)
+            .limit(page_size)
         )
 
-        return list(result.scalars().all())
+        return list(result.scalars().all()), total
 
-    async def get_inactive_by_organization(
-        self,
-        organization_id: UUID,
-    ) -> list[Project]:
-        """
-        Get only inactive projects for the organization.
-        """
+    # async def get_active_by_organization(
+    #     self,
+    #     organization_id: UUID,
+    # ) -> list[Project]:
+    #     result = await self.db.execute(
+    #         select(Project)
+    #         .where(
+    #             Project.organization_id == organization_id,
+    #             Project.is_active.is_(True),
+    #         )
+    #         .order_by(Project.created_at.desc())
+    #     )
 
-        result = await self.db.execute(
-            select(Project)
-            .where(
-                Project.organization_id == organization_id,
-                Project.is_active.is_(False),
-            )
-            .order_by(Project.created_at.desc())
-        )
+    #     return list(result.scalars().all())
 
-        return list(result.scalars().all())
+    # async def get_inactive_by_organization(
+    #     self,
+    #     organization_id: UUID,
+    # ) -> list[Project]:
+    #     result = await self.db.execute(
+    #         select(Project)
+    #         .where(
+    #             Project.organization_id == organization_id,
+    #             Project.is_active.is_(False),
+    #         )
+    #         .order_by(Project.created_at.desc())
+    #     )
+
+    #     return list(result.scalars().all())
 
     async def update(
         self,
@@ -152,10 +170,6 @@ class ProjectRepository:
         self,
         project: Project,
     ) -> Project:
-        """
-        Mark project as inactive.
-        """
-
         project.is_active = False
 
         await self.db.flush()
@@ -166,10 +180,6 @@ class ProjectRepository:
         self,
         project: Project,
     ) -> Project:
-        """
-        Mark project as active.
-        """
-
         project.is_active = True
 
         await self.db.flush()
@@ -180,10 +190,5 @@ class ProjectRepository:
         self,
         project: Project,
     ) -> None:
-        """
-        Permanently delete the project from the database.
-        """
-
         await self.db.delete(project)
         await self.db.flush()
-
