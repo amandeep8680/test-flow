@@ -12,6 +12,10 @@ from app.api.v1.project_member_permissions import (router as project_member_perm
 from app.api.v1.test_cases import router as test_case_router
 from app.api.v1.tags import router as tag_router
 from app.api.v1.test_step import router as test_step_router
+from app.api.v1.test_cycle import router as test_cycle_router
+from app.api.v1.test_cycle_test_case import router as test_cycle_test_case_router
+
+
 
 api_router = APIRouter(
     prefix="/api/v1",
@@ -20,6 +24,9 @@ api_router = APIRouter(
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
 api_router.include_router(project_router)
+
+
+
 
 # RBAC
 api_router.include_router(permissions_router)
@@ -30,3 +37,5 @@ api_router.include_router(project_member_permissions_router)
 api_router.include_router(tag_router)
 api_router.include_router(test_case_router)
 api_router.include_router(test_step_router)
+api_router.include_router(test_cycle_router)
+api_router.include_router(test_cycle_test_case_router)

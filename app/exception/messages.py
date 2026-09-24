@@ -115,3 +115,14 @@ class TestStepMessages:
     INVALID_STEP_NUMBER = "Invalid step number."
     INVALID_SORT_FIELD = "Invalid sort field."
     INVALID_REORDER = "Invalid step order."
+
+class TestCycleMessages:
+    TEST_CYCLE_NOT_FOUND = "Test cycle not found."
+    INVALID_SORT_FIELD = "Invalid sort field."
+
+
+class TestCycleMessages:
+    TEST_CYCLE_NOT_FOUND = "Test cycle not found."
+    INVALID_SORT_FIELD = "Invalid sort field."
+    TEST_CASE_ALREADY_MAPPED = "Test case is already mapped to this cycle."
+    TEST_CASE_NOT_MAPPED = "Test case is not mapped to this cycle."

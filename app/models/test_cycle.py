@@ -1,27 +1,30 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, JSON, String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
 
-class TestCase(Base):
-    __tablename__ = "test_cases"
+class TestCycle(Base):
+    __tablename__ = "test_cycles"
 
     id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
     )
 
     project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
         ForeignKey("projects.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    title: Mapped[str] = mapped_column(
+    name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
     )
@@ -31,23 +34,10 @@ class TestCase(Base):
         nullable=True,
     )
 
-    preconditions: Mapped[list] = mapped_column(
-        JSON,
+    type: Mapped[str] = mapped_column(
+        String(30),
         nullable=False,
-        default=list,
-    )
-
-
-    postconditions: Mapped[list] = mapped_column(
-        JSON,
-        nullable=False,
-        default=list,
-    )
-
-    priority: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False,
-        default="medium",
+        default="functional",
     )
 
     status: Mapped[str] = mapped_column(
@@ -58,37 +48,24 @@ class TestCase(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        server_default=func.now(),
         nullable=False,
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=func.now(),
         nullable=False,
     )
 
     project = relationship(
         "Project",
-        back_populates="test_cases",
-    )
-
-    test_steps = relationship(
-            "TestStep",
-            back_populates="test_case",
-            cascade="all, delete-orphan",
-            order_by="TestStep.step_number",
-        )
-    
-    test_case_tags = relationship(
-        "TestCaseTag",
-        back_populates="test_case",
-        cascade="all, delete-orphan",
+        back_populates="test_cycles",
     )
 
     test_cycle_test_cases = relationship(
         "TestCycleTestCase",
-        back_populates="test_case",
+        back_populates="test_cycle",
         cascade="all, delete-orphan",
     )

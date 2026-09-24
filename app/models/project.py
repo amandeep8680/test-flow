@@ -62,3 +62,8 @@ class Project(Base):
         cascade="all, delete-orphan",
     )
 
+    test_cycles = relationship(
+        "TestCycle",
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )

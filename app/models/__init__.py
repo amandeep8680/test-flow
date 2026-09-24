@@ -9,6 +9,8 @@ from app.models.test_case import TestCase
 from app.models.tag import Tag
 from app.models.test_case_tag import TestCaseTag
 from app.models.test_step import TestStep
+from app.models.test_cycle import TestCycle
+from app.models.test_cycle_test_case import TestCycleTestCase
 __all__ = [
     "Organization",
     "User",
@@ -21,4 +23,6 @@ __all__ = [
     "Tag",
     "TestCaseTag",
     "TestStep",
+    "TestCycle",
+    "TestCycleTestCase",
 ]
