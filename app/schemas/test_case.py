@@ -4,24 +4,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 # -------------------------
-# Test Case Step
-# -------------------------
-
-class TestStep(BaseModel):
-    step: int = Field(
-        ge=1,
-    )
-
-    action: str = Field(
-        min_length=1,
-    )
-
-    expected_result: str = Field(
-        min_length=1,
-    )
-
-
-# -------------------------
 # Test Case
 # -------------------------
 
@@ -37,9 +19,6 @@ class TestCaseCreateRequest(BaseModel):
         default_factory=list,
     )
 
-    steps: list[TestStep] = Field(
-        default_factory=list,
-    )
 
     postconditions: list[str] = Field(
         default_factory=list,
@@ -72,7 +51,6 @@ class TestCaseUpdateRequest(BaseModel):
 
     preconditions: list[str] | None = None
 
-    steps: list[TestStep] | None = None
 
     postconditions: list[str] | None = None
 
@@ -130,7 +108,7 @@ class TestCaseResponse(BaseModel):
     description: str | None
 
     preconditions: list[str]
-    steps: list[TestStep]
+
     postconditions: list[str]
 
     priority: str

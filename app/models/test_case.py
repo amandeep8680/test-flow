@@ -37,11 +37,6 @@ class TestCase(Base):
         default=list,
     )
 
-    steps: Mapped[list] = mapped_column(
-        JSON,
-        nullable=False,
-        default=list,
-    )
 
     postconditions: Mapped[list] = mapped_column(
         JSON,
@@ -79,6 +74,13 @@ class TestCase(Base):
         back_populates="test_cases",
     )
 
+    test_steps = relationship(
+            "TestStep",
+            back_populates="test_case",
+            cascade="all, delete-orphan",
+            order_by="TestStep.step_number",
+        )
+    
     test_case_tags = relationship(
         "TestCaseTag",
         back_populates="test_case",

@@ -1,24 +1,23 @@
-import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import uuid
+from math import ceil
+
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.dependencies.permissions import require_project_permission
+from app.exception.exceptions import NotFoundException
+from app.exception.messages import TestCaseMessages
 from app.models.user import User
 from app.schemas.test_case import (
     TagResponse,
     TestCaseCreateRequest,
+    TestCaseListResponse,
     TestCaseResponse,
     TestCaseUpdateRequest,
-    TestCaseListResponse
 )
 from app.services.test_case import TestCaseService
-
-from math import ceil
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-
-from app.schemas.common import PaginationResponse
 
 
 router = APIRouter(
@@ -27,14 +26,15 @@ router = APIRouter(
 )
 
 
-def build_test_case_response(test_case) -> TestCaseResponse:
+def build_test_case_response(
+    test_case,
+) -> TestCaseResponse:
     return TestCaseResponse(
         id=test_case.id,
         project_id=test_case.project_id,
         title=test_case.title,
         description=test_case.description,
         preconditions=test_case.preconditions,
-        steps=test_case.steps,
         postconditions=test_case.postconditions,
         priority=test_case.priority,
         status=test_case.status,
@@ -60,25 +60,29 @@ async def create_test_case(
 ):
     service = TestCaseService(db)
 
-    try:
-        test_case = await service.create_test_case(
-            project_id=project_id,
-            data=data,
-        )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        )
+    test_case = await service.create_test_case(
+        project_id=project_id,
+        data=data,
+    )
 
     return build_test_case_response(test_case)
 
 
-@router.get("", response_model=TestCaseListResponse)
+@router.get(
+    "",
+    response_model=TestCaseListResponse,
+)
 async def get_test_cases(
     project_id: uuid.UUID,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page: int = Query(
+        1,
+        ge=1,
+    ),
+    page_size: int = Query(
+        20,
+        ge=1,
+        le=100,
+    ),
     search: str | None = Query(None),
     status: str | None = Query(
         None,
@@ -89,7 +93,9 @@ async def get_test_cases(
         pattern="^(low|medium|high|critical)$",
     ),
     tag_id: uuid.UUID | None = Query(None),
-    sort_by: str = Query("created_at"),
+    sort_by: str = Query(
+        "created_at",
+    ),
     sort_order: str = Query(
         "desc",
         pattern="^(asc|desc)$",
@@ -101,23 +107,17 @@ async def get_test_cases(
 ):
     service = TestCaseService(db)
 
-    try:
-        test_cases, total = await service.get_test_cases(
-            project_id=project_id,
-            page=page,
-            page_size=page_size,
-            search=search,
-            status=status,
-            priority=priority,
-            tag_id=tag_id,
-            sort_by=sort_by,
-            sort_order=sort_order,
-        )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        )
+    test_cases, total = await service.get_test_cases(
+        project_id=project_id,
+        page=page,
+        page_size=page_size,
+        search=search,
+        status=status,
+        priority=priority,
+        tag_id=tag_id,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
 
     return TestCaseListResponse(
         items=[
@@ -129,6 +129,7 @@ async def get_test_cases(
         total=total,
         total_pages=ceil(total / page_size) if total else 0,
     )
+
 
 @router.get(
     "/{test_case_id}",
@@ -150,9 +151,8 @@ async def get_test_case(
     )
 
     if test_case is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Test case not found.",
+        raise NotFoundException(
+            TestCaseMessages.TEST_CASE_NOT_FOUND
         )
 
     return build_test_case_response(test_case)
@@ -173,23 +173,11 @@ async def update_test_case(
 ):
     service = TestCaseService(db)
 
-    try:
-        test_case = await service.update_test_case(
-            test_case_id=test_case_id,
-            project_id=project_id,
-            data=data,
-        )
-    except ValueError as exc:
-        if str(exc) == "Test case not found.":
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=str(exc),
-            )
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        )
+    test_case = await service.update_test_case(
+        test_case_id=test_case_id,
+        project_id=project_id,
+        data=data,
+    )
 
     return build_test_case_response(test_case)
 
@@ -208,15 +196,9 @@ async def delete_test_case(
 ):
     service = TestCaseService(db)
 
-    try:
-        await service.delete_test_case(
-            test_case_id=test_case_id,
-            project_id=project_id,
-        )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        )
+    await service.delete_test_case(
+        test_case_id=test_case_id,
+        project_id=project_id,
+    )
 
     return None

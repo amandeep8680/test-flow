@@ -102,3 +102,16 @@ class ProjectMessages:
     PERMISSION_DENIED = (
         "You do not have permission to perform this action"
     )
+
+
+class TestCaseMessages:
+    TEST_CASE_NOT_FOUND = "Test case not found."
+    TAG_NOT_FOUND = "Tag not found."
+
+
+class TestStepMessages:
+    TEST_STEP_NOT_FOUND = "Test step not found."
+    TEST_STEP_ALREADY_EXISTS = "Test step already exists."
+    INVALID_STEP_NUMBER = "Invalid step number."
+    INVALID_SORT_FIELD = "Invalid sort field."
+    INVALID_REORDER = "Invalid step order."

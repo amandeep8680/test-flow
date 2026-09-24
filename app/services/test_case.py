@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.exception.exceptions import NotFoundException
 from app.models.test_case import TestCase
 from app.models.test_case_tag import TestCaseTag
 from app.repositories.tag import TagRepository
@@ -11,7 +12,8 @@ from app.schemas.test_case import (
     TestCaseCreateRequest,
     TestCaseUpdateRequest,
 )
-
+from app.exception.exceptions import NotFoundException
+from app.exception.messages import TestCaseMessages
 
 class TestCaseService:
     def __init__(self, db: AsyncSession):
@@ -69,8 +71,8 @@ class TestCaseService:
             )
 
             if tag is None:
-                raise ValueError(
-                    f"Tag {tag_id} does not exist."
+                raise NotFoundException(
+                    TestCaseMessages.TAG_NOT_FOUND
                 )
 
             tags.append(tag)
@@ -80,10 +82,6 @@ class TestCaseService:
             title=data.title,
             description=data.description,
             preconditions=data.preconditions,
-            steps=[
-                step.model_dump()
-                for step in data.steps
-            ],
             postconditions=data.postconditions,
             priority=data.priority,
             status=data.status,
@@ -140,8 +138,8 @@ class TestCaseService:
                 )
 
                 if tag is None:
-                    raise ValueError(
-                        f"Tag {tag_id} does not exist."
+                    raise NotFoundException(
+                        TestCaseMessages.TAG_NOT_FOUND
                     )
 
                 tags.append(tag)
@@ -151,12 +149,7 @@ class TestCaseService:
             exclude={"tag_ids"},
         )
 
-        if "steps" in update_data and data.steps is not None:
-            update_data["steps"] = [
-                step.model_dump()
-                for step in data.steps
-            ]
-
+    
         for field, value in update_data.items():
             setattr(test_case, field, value)
 
@@ -205,7 +198,9 @@ class TestCaseService:
         )
 
         if test_case is None:
-            raise ValueError("Test case not found.")
+            raise NotFoundException(
+                    TestCaseMessages.TEST_CASE_NOT_FOUND
+                )
 
         await self.test_case_repository.delete(
             test_case=test_case,

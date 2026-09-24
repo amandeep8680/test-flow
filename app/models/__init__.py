@@ -8,8 +8,7 @@ from app.models.user_role import UserRole
 from app.models.test_case import TestCase
 from app.models.tag import Tag
 from app.models.test_case_tag import TestCaseTag
-
-
+from app.models.test_step import TestStep
 __all__ = [
     "Organization",
     "User",
@@ -21,4 +20,5 @@ __all__ = [
     "TestCase",
     "Tag",
     "TestCaseTag",
+    "TestStep",
 ]

@@ -1,4 +1,5 @@
 import uuid
+
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -20,15 +21,16 @@ class TestCaseRepository:
             select(TestCase)
             .options(
                 selectinload(TestCase.test_case_tags)
-                .selectinload(TestCaseTag.tag)
+                .selectinload(TestCaseTag.tag),
+                selectinload(TestCase.test_steps),
             )
             .where(
                 TestCase.id == test_case_id,
                 TestCase.project_id == project_id,
             )
         )
-        return result.scalar_one_or_none()
 
+        return result.scalar_one_or_none()
 
     async def get_all(
         self,
@@ -43,10 +45,13 @@ class TestCaseRepository:
         sort_order: str = "desc",
     ) -> tuple[list[TestCase], int]:
 
-        filters = [TestCase.project_id == project_id]
+        filters = [
+            TestCase.project_id == project_id,
+        ]
 
         if search:
             search_pattern = f"%{search}%"
+
             filters.append(
                 or_(
                     TestCase.title.ilike(search_pattern),
@@ -55,16 +60,20 @@ class TestCaseRepository:
             )
 
         if status:
-            filters.append(TestCase.status == status)
+            filters.append(
+                TestCase.status == status,
+            )
 
         if priority:
-            filters.append(TestCase.priority == priority)
+            filters.append(
+                TestCase.priority == priority,
+            )
 
         if tag_id:
             filters.append(
                 TestCase.id.in_(
                     select(TestCaseTag.test_case_id).where(
-                        TestCaseTag.tag_id == tag_id
+                        TestCaseTag.tag_id == tag_id,
                     )
                 )
             )
@@ -73,6 +82,7 @@ class TestCaseRepository:
             select(func.count(TestCase.id))
             .where(*filters)
         )
+
         total = count_result.scalar_one()
 
         sort_columns = {
@@ -100,7 +110,8 @@ class TestCaseRepository:
             select(TestCase)
             .options(
                 selectinload(TestCase.test_case_tags)
-                .selectinload(TestCaseTag.tag)
+                .selectinload(TestCaseTag.tag),
+                selectinload(TestCase.test_steps),
             )
             .where(*filters)
             .order_by(sort_column)
@@ -110,18 +121,29 @@ class TestCaseRepository:
 
         return list(result.scalars().all()), total
 
-
-    async def create(self, test_case: TestCase) -> TestCase:
+    async def create(
+        self,
+        test_case: TestCase,
+    ) -> TestCase:
         self.db.add(test_case)
+
         await self.db.flush()
         await self.db.refresh(test_case)
+
         return test_case
 
-    async def update(self, test_case: TestCase) -> TestCase:
+    async def update(
+        self,
+        test_case: TestCase,
+    ) -> TestCase:
         await self.db.flush()
         await self.db.refresh(test_case)
+
         return test_case
 
-    async def delete(self, test_case: TestCase) -> None:
+    async def delete(
+        self,
+        test_case: TestCase,
+    ) -> None:
         await self.db.delete(test_case)
         await self.db.flush()
