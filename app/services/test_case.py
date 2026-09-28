@@ -4,36 +4,41 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.exception.exceptions import NotFoundException
+from app.exception.messages import TestCaseMessages
 from app.models.test_case import TestCase
 from app.models.test_case_tag import TestCaseTag
 from app.repositories.tag import TagRepository
 from app.repositories.test_case import TestCaseRepository
+from app.repositories.test_module import TestModuleRepository
 from app.schemas.test_case import (
     TestCaseCreateRequest,
     TestCaseUpdateRequest,
 )
-from app.exception.exceptions import NotFoundException
-from app.exception.messages import TestCaseMessages
+
 
 class TestCaseService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.test_case_repository = TestCaseRepository(db)
         self.tag_repository = TagRepository(db)
+        self.test_module_repository = TestModuleRepository(db)
 
     async def get_test_case(
         self,
         test_case_id: uuid.UUID,
         project_id: uuid.UUID,
+        module_id: uuid.UUID,
     ) -> TestCase | None:
         return await self.test_case_repository.get_by_id(
             test_case_id=test_case_id,
             project_id=project_id,
+            module_id=module_id,
         )
 
     async def get_test_cases(
         self,
         project_id: uuid.UUID,
+        module_id: uuid.UUID,
         page: int = 1,
         page_size: int = 20,
         search: str | None = None,
@@ -46,6 +51,7 @@ class TestCaseService:
 
         return await self.test_case_repository.get_all(
             project_id=project_id,
+            module_id=module_id,
             page=page,
             page_size=page_size,
             search=search,
@@ -54,17 +60,27 @@ class TestCaseService:
             tag_id=tag_id,
             sort_by=sort_by,
             sort_order=sort_order,
-    )
+        )
 
     async def create_test_case(
         self,
         project_id: uuid.UUID,
+        module_id: uuid.UUID,
         data: TestCaseCreateRequest,
     ) -> TestCase:
 
+        module = await self.test_module_repository.get_by_id(
+            module_id=module_id,
+            project_id=project_id,
+        )
+
+        if module is None:
+            raise NotFoundException(
+                TestCaseMessages.TEST_MODULE_NOT_FOUND
+            )
+
         tags = []
 
-        # Validate global tags
         for tag_id in data.tag_ids:
             tag = await self.tag_repository.get_by_id(
                 tag_id=tag_id,
@@ -79,6 +95,7 @@ class TestCaseService:
 
         test_case = TestCase(
             project_id=project_id,
+            module_id=module_id,
             title=data.title,
             description=data.description,
             preconditions=data.preconditions,
@@ -91,7 +108,6 @@ class TestCaseService:
             test_case=test_case,
         )
 
-        # Attach multiple tags if provided
         for tag in tags:
             self.db.add(
                 TestCaseTag(
@@ -102,10 +118,10 @@ class TestCaseService:
 
         await self.db.commit()
 
-        # Re-fetch with tags eagerly loaded
         test_case = await self.test_case_repository.get_by_id(
             test_case_id=test_case.id,
             project_id=project_id,
+            module_id=module_id,
         )
 
         return test_case
@@ -114,24 +130,26 @@ class TestCaseService:
         self,
         test_case_id: uuid.UUID,
         project_id: uuid.UUID,
+        module_id: uuid.UUID,
         data: TestCaseUpdateRequest,
     ) -> TestCase:
 
         test_case = await self.test_case_repository.get_by_id(
             test_case_id=test_case_id,
             project_id=project_id,
+            module_id=module_id,
         )
 
         if test_case is None:
-            raise ValueError("Test case not found.")
+            raise NotFoundException(
+                TestCaseMessages.TEST_CASE_NOT_FOUND
+            )
 
-        # None = tags were not included in update request
         tags = None
 
         if data.tag_ids is not None:
             tags = []
 
-            # Validate global tags
             for tag_id in data.tag_ids:
                 tag = await self.tag_repository.get_by_id(
                     tag_id=tag_id,
@@ -149,14 +167,9 @@ class TestCaseService:
             exclude={"tag_ids"},
         )
 
-    
         for field, value in update_data.items():
             setattr(test_case, field, value)
 
-        # If tag_ids was provided:
-        # replace existing tags with the new list.
-        #
-        # [] means remove all tags.
         if tags is not None:
             await self.db.execute(
                 delete(TestCaseTag).where(
@@ -178,10 +191,10 @@ class TestCaseService:
 
         await self.db.commit()
 
-        # Re-fetch with tags eagerly loaded
         test_case = await self.test_case_repository.get_by_id(
             test_case_id=test_case.id,
             project_id=project_id,
+            module_id=module_id,
         )
 
         return test_case
@@ -190,17 +203,19 @@ class TestCaseService:
         self,
         test_case_id: uuid.UUID,
         project_id: uuid.UUID,
+        module_id: uuid.UUID,
     ) -> None:
 
         test_case = await self.test_case_repository.get_by_id(
             test_case_id=test_case_id,
             project_id=project_id,
+            module_id=module_id,
         )
 
         if test_case is None:
             raise NotFoundException(
-                    TestCaseMessages.TEST_CASE_NOT_FOUND
-                )
+                TestCaseMessages.TEST_CASE_NOT_FOUND
+            )
 
         await self.test_case_repository.delete(
             test_case=test_case,

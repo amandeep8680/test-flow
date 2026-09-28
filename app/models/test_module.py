@@ -8,8 +8,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 
-class TestCycle(Base):
-    __tablename__ = "test_cycles"
+class TestModule(Base):
+    __tablename__ = "test_modules"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -18,7 +18,6 @@ class TestCycle(Base):
     )
 
     project_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
         ForeignKey("projects.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -32,18 +31,6 @@ class TestCycle(Base):
     description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
-    )
-
-    type: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False,
-        default="functional",
-    )
-
-    status: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False,
-        default="draft",
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -61,17 +48,11 @@ class TestCycle(Base):
 
     project = relationship(
         "Project",
-        back_populates="test_cycles",
+        back_populates="test_modules",
     )
 
-    test_cycle_test_cases = relationship(
-        "TestCycleTestCase",
-        back_populates="test_cycle",
+    test_cases = relationship(
+        "TestCase",
+        back_populates="test_module",
         cascade="all, delete-orphan",
-    )
-
-    test_executions = relationship(
-    "TestExecution",
-    back_populates="test_cycle",
-    cascade="all, delete-orphan",
     )

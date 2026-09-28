@@ -1,4 +1,3 @@
-
 import uuid
 from math import ceil
 
@@ -7,8 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.dependencies.permissions import require_project_permission
-from app.exception.exceptions import NotFoundException
-from app.exception.messages import TestCaseMessages
 from app.models.user import User
 from app.schemas.test_case import (
     TagResponse,
@@ -21,7 +18,7 @@ from app.services.test_case import TestCaseService
 
 
 router = APIRouter(
-    prefix="/projects/{project_id}/test-cases",
+    prefix="/projects/{project_id}/modules/{module_id}/test-cases",
     tags=["Test Cases"],
 )
 
@@ -32,6 +29,7 @@ def build_test_case_response(
     return TestCaseResponse(
         id=test_case.id,
         project_id=test_case.project_id,
+        module_id=test_case.module_id,
         title=test_case.title,
         description=test_case.description,
         preconditions=test_case.preconditions,
@@ -52,6 +50,7 @@ def build_test_case_response(
 )
 async def create_test_case(
     project_id: uuid.UUID,
+    module_id: uuid.UUID,
     data: TestCaseCreateRequest,
     current_user: User = Depends(
         require_project_permission("test_case.create")
@@ -62,6 +61,7 @@ async def create_test_case(
 
     test_case = await service.create_test_case(
         project_id=project_id,
+        module_id=module_id,
         data=data,
     )
 
@@ -74,15 +74,9 @@ async def create_test_case(
 )
 async def get_test_cases(
     project_id: uuid.UUID,
-    page: int = Query(
-        1,
-        ge=1,
-    ),
-    page_size: int = Query(
-        20,
-        ge=1,
-        le=100,
-    ),
+    module_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     search: str | None = Query(None),
     status: str | None = Query(
         None,
@@ -93,9 +87,7 @@ async def get_test_cases(
         pattern="^(low|medium|high|critical)$",
     ),
     tag_id: uuid.UUID | None = Query(None),
-    sort_by: str = Query(
-        "created_at",
-    ),
+    sort_by: str = Query("created_at"),
     sort_order: str = Query(
         "desc",
         pattern="^(asc|desc)$",
@@ -109,6 +101,7 @@ async def get_test_cases(
 
     test_cases, total = await service.get_test_cases(
         project_id=project_id,
+        module_id=module_id,
         page=page,
         page_size=page_size,
         search=search,
@@ -137,6 +130,7 @@ async def get_test_cases(
 )
 async def get_test_case(
     project_id: uuid.UUID,
+    module_id: uuid.UUID,
     test_case_id: uuid.UUID,
     current_user: User = Depends(
         require_project_permission("test_case.view")
@@ -148,9 +142,13 @@ async def get_test_case(
     test_case = await service.get_test_case(
         test_case_id=test_case_id,
         project_id=project_id,
+        module_id=module_id,
     )
 
     if test_case is None:
+        from app.exception.exceptions import NotFoundException
+        from app.exception.messages import TestCaseMessages
+
         raise NotFoundException(
             TestCaseMessages.TEST_CASE_NOT_FOUND
         )
@@ -164,6 +162,7 @@ async def get_test_case(
 )
 async def update_test_case(
     project_id: uuid.UUID,
+    module_id: uuid.UUID,
     test_case_id: uuid.UUID,
     data: TestCaseUpdateRequest,
     current_user: User = Depends(
@@ -176,6 +175,7 @@ async def update_test_case(
     test_case = await service.update_test_case(
         test_case_id=test_case_id,
         project_id=project_id,
+        module_id=module_id,
         data=data,
     )
 
@@ -188,6 +188,7 @@ async def update_test_case(
 )
 async def delete_test_case(
     project_id: uuid.UUID,
+    module_id: uuid.UUID,
     test_case_id: uuid.UUID,
     current_user: User = Depends(
         require_project_permission("test_case.delete")
@@ -199,6 +200,7 @@ async def delete_test_case(
     await service.delete_test_case(
         test_case_id=test_case_id,
         project_id=project_id,
+        module_id=module_id,
     )
 
     return None

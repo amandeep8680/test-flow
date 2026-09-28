@@ -54,3 +54,9 @@ class TestStep(Base):
         "TestCase",
         back_populates="test_steps",
     )
+
+    step_executions = relationship(
+        "TestStepExecution",
+        back_populates="test_step",
+        cascade="all, delete-orphan",
+    )

@@ -84,7 +84,12 @@ class TestCycleTestCaseService:
 
         await self.db.commit()
 
-        return added
+        rows = await self.repository.get_cycle_test_cases(
+            cycle_id
+        )
+
+        return rows
+
 
     async def get_test_cases(
         self,
@@ -96,9 +101,22 @@ class TestCycleTestCaseService:
             project_id,
         )
 
-        return await self.repository.get_cycle_test_cases(
+        rows = await self.repository.get_cycle_test_cases(
             cycle_id
         )
+
+        return [
+            {
+                "id": test_case.id,
+                "title": test_case.title,
+                "description": test_case.description,
+                "priority": test_case.priority,
+                "status": test_case.status,
+                "module_id": module_id,
+                "module_name": module_name,
+            }
+            for test_case, module_id, module_name in rows
+        ]
 
     async def remove_test_case(
         self,
@@ -128,7 +146,7 @@ class TestCycleTestCaseService:
 
         if mapping is None:
             raise NotFoundException(
-                TestCaseMessages.TEST_CASE_NOT_FOUND
+                TestCaseMessages.TEST_CASE_NOT_MAPPED
             )
 
         await self.repository.delete_mapping(mapping)

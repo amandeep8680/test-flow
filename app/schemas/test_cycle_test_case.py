@@ -1,7 +1,6 @@
-
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TestCycleTestCaseAddRequest(BaseModel):
@@ -17,11 +16,15 @@ class TestCycleTestCaseAddRequest(BaseModel):
 
 
 class TestCycleTestCaseResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     title: str
     description: str | None
     priority: str
     status: str
+    module_id: UUID
+    module_name: str
 
 
 class TestCycleTestCaseListResponse(BaseModel):

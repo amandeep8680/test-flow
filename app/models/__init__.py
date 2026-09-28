@@ -11,6 +11,9 @@ from app.models.test_case_tag import TestCaseTag
 from app.models.test_step import TestStep
 from app.models.test_cycle import TestCycle
 from app.models.test_cycle_test_case import TestCycleTestCase
+from app.models.test_execution import TestExecution
+from app.models.test_step_execution import TestStepExecution
+from app.models.test_module import TestModule
 __all__ = [
     "Organization",
     "User",
@@ -25,4 +28,7 @@ __all__ = [
     "TestStep",
     "TestCycle",
     "TestCycleTestCase",
+    "TestExecution",
+    "test_module",
+    "TestStepExecution",
 ]

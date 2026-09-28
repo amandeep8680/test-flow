@@ -47,7 +47,6 @@ async def add_test_cases(
         for test_case in test_cases
     ]
 
-
 @router.get(
     "",
     response_model=TestCycleTestCaseListResponse,
@@ -68,13 +67,9 @@ async def get_test_cases(
     )
 
     return TestCycleTestCaseListResponse(
-        items=[
-            TestCycleTestCaseResponse.model_validate(test_case)
-            for test_case in test_cases
-        ],
+        items=test_cases,
         total=len(test_cases),
     )
-
 
 @router.delete(
     "/{test_case_id}",

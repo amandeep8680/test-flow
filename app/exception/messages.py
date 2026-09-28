@@ -126,3 +126,13 @@ class TestCycleMessages:
     INVALID_SORT_FIELD = "Invalid sort field."
     TEST_CASE_ALREADY_MAPPED = "Test case is already mapped to this cycle."
     TEST_CASE_NOT_MAPPED = "Test case is not mapped to this cycle."
+
+
+class TestModuleMessages:
+    TEST_MODULE_NOT_FOUND = "Test module not found."
+    INVALID_SORT_FIELD = "Invalid sort field."
+
+class TestExecutionMessages:
+    TEST_EXECUTION_NOT_FOUND = "Test execution not found."
+    INVALID_SORT_FIELD = "Invalid sort field."
+

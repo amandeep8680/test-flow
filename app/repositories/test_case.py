@@ -16,6 +16,7 @@ class TestCaseRepository:
         self,
         test_case_id: uuid.UUID,
         project_id: uuid.UUID,
+        module_id: uuid.UUID,
     ) -> TestCase | None:
         result = await self.db.execute(
             select(TestCase)
@@ -27,6 +28,7 @@ class TestCaseRepository:
             .where(
                 TestCase.id == test_case_id,
                 TestCase.project_id == project_id,
+                TestCase.module_id == module_id,
             )
         )
 
@@ -35,6 +37,7 @@ class TestCaseRepository:
     async def get_all(
         self,
         project_id: uuid.UUID,
+        module_id: uuid.UUID,
         page: int = 1,
         page_size: int = 20,
         search: str | None = None,
@@ -47,6 +50,7 @@ class TestCaseRepository:
 
         filters = [
             TestCase.project_id == project_id,
+            TestCase.module_id == module_id,
         ]
 
         if search:
@@ -96,11 +100,11 @@ class TestCaseRepository:
         sort_column = sort_columns.get(sort_by)
 
         if sort_column is None:
-            raise ValueError("Invalid sort field.")
+            raise ValueError
 
         sort_column = (
             sort_column.asc()
-            if sort_order == "asc"
+            if sort_order.lower() == "asc"
             else sort_column.desc()
         )
 

@@ -1,4 +1,3 @@
-
 from uuid import UUID
 
 from sqlalchemy import select
@@ -6,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.test_case import TestCase
 from app.models.test_cycle_test_case import TestCycleTestCase
+from app.models.test_module import TestModule
 
 
 class TestCycleTestCaseRepository:
@@ -28,20 +28,31 @@ class TestCycleTestCaseRepository:
     async def get_cycle_test_cases(
         self,
         cycle_id: UUID,
-    ) -> list[TestCase]:
+    ):
         result = await self.db.execute(
-            select(TestCase)
+            select(
+                TestCase,
+                TestModule.id.label("module_id"),
+                TestModule.name.label("module_name"),
+            )
             .join(
                 TestCycleTestCase,
                 TestCycleTestCase.test_case_id == TestCase.id,
             )
+            .join(
+                TestModule,
+                TestModule.id == TestCase.module_id,
+            )
             .where(
                 TestCycleTestCase.test_cycle_id == cycle_id,
             )
-            .order_by(TestCase.created_at.desc())
+            .order_by(
+                TestModule.name.asc(),
+                TestCase.created_at.desc(),
+            )
         )
 
-        return result.scalars().all()
+        return result.all()
 
     async def create_mapping(
         self,

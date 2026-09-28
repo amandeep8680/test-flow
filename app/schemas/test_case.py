@@ -19,7 +19,6 @@ class TestCaseCreateRequest(BaseModel):
         default_factory=list,
     )
 
-
     postconditions: list[str] = Field(
         default_factory=list,
     )
@@ -35,8 +34,8 @@ class TestCaseCreateRequest(BaseModel):
     )
 
     tag_ids: list[UUID] = Field(
-    default_factory=list,
-    json_schema_extra={"example": []},
+        default_factory=list,
+        json_schema_extra={"example": []},
     )
 
 
@@ -51,7 +50,6 @@ class TestCaseUpdateRequest(BaseModel):
 
     preconditions: list[str] | None = None
 
-
     postconditions: list[str] | None = None
 
     priority: str | None = Field(
@@ -64,10 +62,10 @@ class TestCaseUpdateRequest(BaseModel):
         pattern="^(draft|active|inactive)$",
     )
 
-    tag_ids: list[UUID] = Field(
-        default_factory=list,
+    tag_ids: list[UUID] | None = Field(
+        default=None,
         json_schema_extra={"example": []},
-        )
+    )
 
 
 # -------------------------
@@ -104,11 +102,12 @@ class TestCaseResponse(BaseModel):
 
     id: UUID
     project_id: UUID
+    module_id: UUID
+
     title: str
     description: str | None
 
     preconditions: list[str]
-
     postconditions: list[str]
 
     priority: str

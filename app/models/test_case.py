@@ -21,6 +21,12 @@ class TestCase(Base):
         index=True,
     )
 
+    module_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("test_modules.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
     title: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
@@ -36,7 +42,6 @@ class TestCase(Base):
         nullable=False,
         default=list,
     )
-
 
     postconditions: Mapped[list] = mapped_column(
         JSON,
@@ -74,13 +79,18 @@ class TestCase(Base):
         back_populates="test_cases",
     )
 
+    test_module = relationship(
+        "TestModule",
+        back_populates="test_cases",
+    )
+
     test_steps = relationship(
-            "TestStep",
-            back_populates="test_case",
-            cascade="all, delete-orphan",
-            order_by="TestStep.step_number",
-        )
-    
+        "TestStep",
+        back_populates="test_case",
+        cascade="all, delete-orphan",
+        order_by="TestStep.step_number",
+    )
+
     test_case_tags = relationship(
         "TestCaseTag",
         back_populates="test_case",
@@ -89,6 +99,12 @@ class TestCase(Base):
 
     test_cycle_test_cases = relationship(
         "TestCycleTestCase",
+        back_populates="test_case",
+        cascade="all, delete-orphan",
+    )
+
+    test_executions = relationship(
+        "TestExecution",
         back_populates="test_case",
         cascade="all, delete-orphan",
     )
