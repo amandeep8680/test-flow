@@ -1,10 +1,15 @@
-
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.dependencies.auth import get_current_user
 from app.dependencies.permissions import require_permission
+from app.models.permission import Permission
+from app.models.role import Role
+from app.models.role_permission import RolePermission
 from app.models.user import User
+from app.models.user_role import UserRole
 from app.schemas.permission import (
     PermissionCreateRequest,
     PermissionResponse,
@@ -23,14 +28,24 @@ router = APIRouter(
     response_model=list[PermissionResponse],
 )
 async def get_permissions(
-    current_user: User = Depends(
-        require_permission("role.view")
-    ),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    service = PermissionService(db)
+    result = await db.execute(
+        select(Permission)
+        .join(RolePermission, RolePermission.permission_id == Permission.id)
+        .join(Role, Role.id == RolePermission.role_id)
+        .join(UserRole, UserRole.role_id == Role.id)
+        .where(
+            UserRole.user_id == current_user.id,
+            Role.organization_id == current_user.organization_id,
+            Role.is_active.is_(True),
+        )
+        .distinct()
+        .order_by(Permission.name)
+    )
 
-    return await service.get_permissions()
+    return list(result.scalars().all())
 
 
 @router.post(
@@ -47,4 +62,3 @@ async def create_permission(
     service = PermissionService(db)
 
     return await service.create_permission(request)
-
