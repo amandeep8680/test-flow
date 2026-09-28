@@ -67,3 +67,10 @@ class Project(Base):
         back_populates="project",
         cascade="all, delete-orphan",
     )
+
+
+    test_modules = relationship(
+    "TestModule",
+    back_populates="project",
+    cascade="all, delete-orphan",
+)
