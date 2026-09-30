@@ -59,7 +59,7 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Authenticate a user and return access and refresh tokens.
+    Auccess and refresh tokens.
     """
 
     auth_service = AuthService(db)

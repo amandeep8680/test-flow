@@ -136,3 +136,7 @@ class TestExecutionMessages:
     TEST_EXECUTION_NOT_FOUND = "Test execution not found."
     INVALID_SORT_FIELD = "Invalid sort field."
 
+
+class RoleMessages:
+    ROLE_NOT_FOUND = "Role not found."
+    ROLE_CANNOT_DELETE_OWN = "You cannot delete your own assigned role."

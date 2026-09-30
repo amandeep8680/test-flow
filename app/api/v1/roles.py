@@ -80,3 +80,30 @@ async def update_role(
         raise HTTPException(status_code=404, detail="Role not found")
 
     return role
+
+
+@router.delete(
+    "/{role_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+
+
+
+@router.delete(
+    "/{role_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_role(
+    role_id: UUID,
+    current_user: User = Depends(
+        require_permission("role.delete")
+    ),
+    db: AsyncSession = Depends(get_db),
+):
+    service = RoleService(db)
+
+    await service.delete_role(
+        role_id=role_id,
+        organization_id=current_user.organization_id,
+        current_user_id=current_user.id,
+    )

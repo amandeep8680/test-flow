@@ -2,9 +2,14 @@
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from sqlalchemy import select
 from app.repositories.role import RoleRepository
 from app.schemas.role import RoleCreateRequest, RoleUpdateRequest
+from app.models.user_role import UserRole
+from app.exception.exceptions import BadRequestException
+from app.exception.messages import RoleMessages
+from app.models.user_role import UserRole
+from sqlalchemy import select
 
 
 class RoleService:
@@ -82,3 +87,34 @@ class RoleService:
 
         return role
 
+    async def delete_role(
+            self,
+            role_id: UUID,
+            organization_id: UUID,
+            current_user_id: UUID,
+        ):
+            role = await self.role_repository.get_by_id(
+                role_id=role_id,
+                organization_id=organization_id,
+            )
+
+            if role is None:
+                raise NotFoundException(
+                    RoleMessages.ROLE_NOT_FOUND
+                )
+
+            result = await self.db.execute(
+                select(UserRole).where(
+                    UserRole.role_id == role_id,
+                    UserRole.user_id == current_user_id,
+                )
+            )
+
+            if result.scalar_one_or_none():
+                raise BadRequestException(
+                    RoleMessages.ROLE_CANNOT_DELETE_OWN
+                )
+
+            await self.role_repository.delete(role)
+
+            await self.db.commit()

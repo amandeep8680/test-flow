@@ -67,3 +67,11 @@ class RoleRepository:
 
         return role
 
+
+
+    async def delete(
+        self,
+        role: Role,
+    ) -> None:
+        await self.db.delete(role)
+        await self.db.flush()
