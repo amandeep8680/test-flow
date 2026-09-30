@@ -23,3 +23,9 @@ class PermissionCreateRequest(BaseModel):
     )
 
     description: str | None = None
+
+
+class PermissionResponse(BaseModel):
+    id: UUID
+    name: str
+    description: str | None

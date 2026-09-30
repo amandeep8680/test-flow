@@ -21,18 +21,11 @@ async def get_roles(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Role)
-        .join(UserRole, UserRole.role_id == Role.id)
-        .where(
-            UserRole.user_id == current_user.id,
-            Role.organization_id == current_user.organization_id,
-            Role.is_active.is_(True),
-        )
-        .order_by(Role.name)
-    )
+    service = RoleService(db)
 
-    return list(result.scalars().all())
+    return await service.get_roles(
+        organization_id=current_user.organization_id,
+    )
 
 
 @router.get("/{role_id}", response_model=RoleResponse)

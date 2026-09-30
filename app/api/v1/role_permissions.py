@@ -18,7 +18,6 @@ router = APIRouter(
     tags=["Role Permissions"],
 )
 
-
 @router.get(
     "/{role_id}/permissions",
 )
@@ -27,19 +26,15 @@ async def get_role_permissions(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    assigned_role = await db.execute(
-        select(Role.id).join(
-            UserRole,
-            UserRole.role_id == Role.id,
-        ).where(
+    role_result = await db.execute(
+        select(Role.id).where(
             Role.id == role_id,
             Role.organization_id == current_user.organization_id,
             Role.is_active.is_(True),
-            UserRole.user_id == current_user.id,
         )
     )
 
-    if assigned_role.scalar_one_or_none() is None:
+    if role_result.scalar_one_or_none() is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Role not found",

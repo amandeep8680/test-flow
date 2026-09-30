@@ -10,9 +10,10 @@ from app.schemas.auth import UserResponse
 from app.schemas.user import CreateUserRequest, CreateUserResponse
 from app.services.user import UserService
 from uuid import UUID
-
+from app.models.permission import Permission
+from app.models.role_permission import RolePermission
 from sqlalchemy import select
-
+from app.schemas.permission import PermissionResponse
 from app.models.role import Role
 from app.models.user_role import UserRole
 
@@ -113,3 +114,36 @@ async def create_user(
         must_change_password=user.must_change_password,
         temporary_password=temporary_password,
     )
+
+@router.get(
+    "/me/permissions",
+    response_model=list[PermissionResponse],
+)
+async def get_my_permissions(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Permission)
+        .join(
+            RolePermission,
+            RolePermission.permission_id == Permission.id,
+        )
+        .join(
+            Role,
+            Role.id == RolePermission.role_id,
+        )
+        .join(
+            UserRole,
+            UserRole.role_id == Role.id,
+        )
+        .where(
+            UserRole.user_id == current_user.id,
+            Role.organization_id == current_user.organization_id,
+            Role.is_active.is_(True),
+        )
+        .distinct()
+        .order_by(Permission.name)
+    )
+
+    return list(result.scalars().all())
